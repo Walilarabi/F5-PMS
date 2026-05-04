@@ -459,150 +459,135 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
     setFolioPayments((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
-  // ─── MODAL ENCAISSER ─────────────────────────────────────────────────────────
-  const EncaisserModal = () => (
-    <AnimatePresence>
-      {isEncaisserOpen && (
-        <div className="fixed inset-0 z-[700] flex items-end sm:items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsEncaisserOpen(false)}
-          />
-          <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="relative w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden"
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                <Wallet className="w-24 h-24" />
-              </div>
-              <div className="flex items-center justify-between relative z-10">
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Encaissement folio</p>
-                  <h3 className="text-lg font-black text-white tracking-tight">Régler le solde</h3>
-                </div>
-                <button
-                  onClick={() => setIsEncaisserOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-                >
-                  <XCircle className="w-4 h-4 text-white" />
-                </button>
-              </div>
-              <div className="mt-4 flex items-center gap-3 relative z-10">
-                <div className="flex-1 bg-white/10 rounded-2xl px-4 py-2">
-                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total folio</div>
-                  <div className="text-base font-black text-white">{totalFolio.toFixed(2)} €</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500" />
-                <div className="flex-1 bg-emerald-500/20 rounded-2xl px-4 py-2">
-                  <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Solde restant</div>
-                  <div className="text-base font-black text-emerald-300">{soldeRestant.toFixed(2)} €</div>
-                </div>
-              </div>
+  // renderEncaisserModal — JSX inline (pas de composant imbriqué pour éviter unmount/remount)
+  const renderEncaisserModal = isEncaisserOpen ? (
+    <div className="fixed inset-0 z-[800] flex items-end sm:items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={() => setIsEncaisserOpen(false)}
+      />
+      {/* Panel */}
+      <div className="relative w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+            <Wallet className="w-24 h-24" />
+          </div>
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Encaissement folio</p>
+              <h3 className="text-lg font-black text-white tracking-tight">Régler le solde</h3>
             </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-5">
-              {/* Mode de paiement */}
-              <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
-                  Mode de paiement
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {PAYMENT_METHODS.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setSelectedMethod(m.id)}
-                      className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border text-center transition-all ${
-                        selectedMethod === m.id
-                          ? 'bg-violet-50 border-violet-400 shadow-sm shadow-violet-100'
-                          : 'bg-slate-50 border-slate-100 hover:border-slate-200'
-                      }`}
-                    >
-                      <span className="text-lg leading-none">{m.icon}</span>
-                      <span className={`text-[8px] font-black uppercase leading-tight ${
-                        selectedMethod === m.id ? 'text-violet-700' : 'text-slate-400'
-                      }`}>
-                        {m.id}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Montant */}
-              <div>
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                  Montant encaissé (€)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={encaisserAmount}
-                    onChange={(e) => setEncaisserAmount(e.target.value)}
-                    placeholder={soldeRestant.toFixed(2)}
-                    min="0"
-                    step="0.01"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 pr-10 text-slate-900 font-black text-lg focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
-                    autoFocus
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">€</span>
-                </div>
-                {/* Raccourcis montant */}
-                <div className="flex gap-2 mt-2">
-                  {[soldeRestant, totalFolio * 0.5, totalFolio * 0.3].filter(v => v > 0).slice(0, 3).map((v, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setEncaisserAmount(v.toFixed(2))}
-                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-[10px] font-black text-slate-500 transition-colors"
-                    >
-                      {v.toFixed(2)} €
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preview ligne facture */}
-              {encaisserAmount && parseFloat(encaisserAmount) > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 flex items-center gap-3"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <ArrowDownToLine className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Ligne facture générée</div>
-                    <div className="text-xs font-black text-emerald-800 truncate">
-                      Règlement {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label} — {parseFloat(encaisserAmount.replace(',', '.')).toFixed(2)} €
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* CTA */}
-              <button
-                onClick={handleConfirmEncaissement}
-                disabled={!encaisserAmount || parseFloat(encaisserAmount) <= 0}
-                className="w-full py-3.5 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg"
-              >
-                <Banknote className="w-4 h-4" />
-                Valider l&apos;encaissement
-              </button>
+            <button
+              onClick={() => setIsEncaisserOpen(false)}
+              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+            >
+              <XCircle className="w-4 h-4 text-white" />
+            </button>
+          </div>
+          <div className="mt-4 flex items-center gap-3 relative z-10">
+            <div className="flex-1 bg-white/10 rounded-2xl px-4 py-2">
+              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total folio</div>
+              <div className="text-base font-black text-white">{totalFolio.toFixed(2)} €</div>
             </div>
-          </motion.div>
+            <ChevronRight className="w-4 h-4 text-slate-500" />
+            <div className="flex-1 bg-emerald-500/20 rounded-2xl px-4 py-2">
+              <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Solde restant</div>
+              <div className="text-base font-black text-emerald-300">{soldeRestant.toFixed(2)} €</div>
+            </div>
+          </div>
         </div>
-      )}
-    </AnimatePresence>
-  );
+
+        {/* Body */}
+        <div className="p-6 space-y-5">
+          {/* Sélecteur mode de paiement */}
+          <div>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+              Mode de paiement
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {PAYMENT_METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setSelectedMethod(m.id)}
+                  className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border text-center transition-all ${
+                    selectedMethod === m.id
+                      ? 'bg-violet-50 border-violet-400 shadow-sm shadow-violet-100'
+                      : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                  }`}
+                >
+                  <span className="text-lg leading-none">{m.icon}</span>
+                  <span className={`text-[8px] font-black uppercase leading-tight ${
+                    selectedMethod === m.id ? 'text-violet-700' : 'text-slate-400'
+                  }`}>
+                    {m.id}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Montant */}
+          <div>
+            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
+              Montant encaissé (€)
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                value={encaisserAmount}
+                onChange={(e) => setEncaisserAmount(e.target.value)}
+                placeholder={soldeRestant.toFixed(2)}
+                min="0"
+                step="0.01"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 pr-10 text-slate-900 font-black text-lg focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                autoFocus
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">€</span>
+            </div>
+            {/* Raccourcis montant */}
+            <div className="flex gap-2 mt-2">
+              {[soldeRestant, totalFolio * 0.5, totalFolio * 0.3].filter(v => v > 0).slice(0, 3).map((v, i) => (
+                <button
+                  key={i}
+                  onClick={() => setEncaisserAmount(v.toFixed(2))}
+                  className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-[10px] font-black text-slate-500 transition-colors"
+                >
+                  {v.toFixed(2)} €
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preview ligne facture */}
+          {encaisserAmount && parseFloat(encaisserAmount) > 0 && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <ArrowDownToLine className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Ligne facture générée</div>
+                <div className="text-xs font-black text-emerald-800 truncate">
+                  Règlement {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label} — {parseFloat(encaisserAmount.replace(',', '.')).toFixed(2)} €
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CTA */}
+          <button
+            onClick={handleConfirmEncaissement}
+            disabled={!encaisserAmount || parseFloat(encaisserAmount) <= 0}
+            className="w-full py-3.5 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Banknote className="w-4 h-4" />
+            Valider l&apos;encaissement
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const FacturationTab = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
@@ -1072,7 +1057,7 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
       )}
 
       {/* ─── Modal Encaissement ─── */}
-      <EncaisserModal />
+      {renderEncaisserModal}
 
       {/* Payment Link Modal */}
       <AnimatePresence>
