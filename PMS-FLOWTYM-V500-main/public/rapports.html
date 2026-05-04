@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowtym PMS — Rapports</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --violet:#8B5CF6; --violet-light:#EDE9FE; --violet-d:#7C3AED;
+  --green:#16A34A; --green-l:#DCFCE7;
+  --red:#DC2626; --red-l:#FEE2E2;
+  --amber:#D97706; --amber-l:#FEF3C7;
+  --blue:#2563EB; --blue-l:#DBEAFE;
+  --gray50:#F9FAFB; --gray100:#F3F4F6; --gray200:#E5E7EB;
+  --gray400:#9CA3AF; --gray600:#4B5563; --gray700:#374151; --gray900:#111827;
+  --border:#E5E7EB; --bg:#F8F9FC;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--gray900);font-size:13px;line-height:1.5}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.app{display:flex;flex-direction:column;min-height:100vh;max-width:1600px;margin:0 auto;padding:10px;gap:8px}
+
+/* ── Panel / Card ────────────────────────────────────────── */
+.panel{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--shadow)}
+.phd{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--gray50)}
+.phd .ptit{font-size:11px;font-weight:700;color:var(--gray900)}
+.phd .pmeta{font-size:10px;color:var(--gray400)}
+.pbody{padding:10px 12px}
+
+/* ── Barre supérieure ────────────────────────────────────── */
+.phdr{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.phdr-l{display:flex;align-items:center;gap:8px}
+.picon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--violet-light);color:var(--violet)}
+.picon svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ptitle{font-size:14px;font-weight:800;color:var(--gray900)}
+.psub{font-size:10px;color:var(--gray400);font-weight:500}
+.pactions{display:flex;gap:5px;flex-wrap:wrap}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;line-height:1}
+.btn svg{flex-shrink:0}
+.btn-v{background:var(--violet);color:#fff} .btn-v:hover{background:var(--violet-d)}
+.btn-g{background:#fff;color:var(--gray700);border:1px solid var(--border)} .btn-g:hover{background:var(--gray50);border-color:var(--gray400)}
+.btn-r{background:var(--red);color:#fff;font-size:11px;padding:4px 8px;border-radius:6px}
+.btn-sm{font-size:11px;padding:5px 9px}
+
+/* ── Period selector ─────────────────────────────────────── */
+.rpd{display:flex;align-items:center;padding:5px 11px;font-size:11px;font-weight:600;color:var(--gray600);border-radius:5px;cursor:pointer;border:none;background:transparent;transition:all .15s}
+.rpd:hover{color:var(--violet)}
+.rpd.active{background:#fff;color:var(--violet);box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:700}
+
+/* ── Family nav ──────────────────────────────────────────── */
+.rpt-family-wrap{position:relative;flex-shrink:0}
+.rpt-family-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--gray700);transition:all .18s;white-space:nowrap}
+.rpt-family-btn:hover{background:var(--violet-light);color:var(--violet);border-color:var(--violet)}
+.rpt-family-btn.active{background:var(--violet);color:#fff;border-color:var(--violet);box-shadow:0 2px 8px rgba(139,92,246,.3)}
+.rpt-family-btn.active svg{stroke:#fff}
+.rpt-dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:210px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.13);z-index:200;overflow:hidden;animation:dropIn .12s ease}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.rpt-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;font-size:12px;font-weight:500;color:var(--gray700);border:none;background:transparent;cursor:pointer;border-bottom:1px solid var(--gray100);text-align:left;transition:all .1s}
+.rpt-item:last-child{border-bottom:none}
+.rpt-item:hover{background:var(--violet-light);color:var(--violet)}
+.rpt-item.active{background:var(--violet-light);color:var(--violet);font-weight:700}
+.rpt-code{font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;background:#ede9fe;color:#5b21b6;font-family:monospace;flex-shrink:0}
+.rpt-item.active .rpt-code{background:#ddd6fe;color:#4c1d95}
+
+/* ── Rapport area ────────────────────────────────────────── */
+#rapportArea{display:flex;flex-direction:column;gap:12px}
+
+/* ── Rapport header (premium) ────────────────────────────── */
+.rpt-header-card{background:linear-gradient(135deg,#6d28d9 0%,#8b5cf6 60%,#a78bfa 100%);border-radius:12px;padding:16px 20px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:relative;overflow:hidden}
+.rpt-header-card::after{content:'';position:absolute;right:-20px;top:-20px;width:120px;height:120px;background:rgba(255,255,255,.06);border-radius:50%}
+.rpt-header-card::before{content:'';position:absolute;right:40px;top:30px;width:60px;height:60px;background:rgba(255,255,255,.04);border-radius:50%}
+.rpt-header-title{font-size:16px;font-weight:800;position:relative;z-index:1}
+.rpt-header-sub{font-size:11px;opacity:.75;margin-top:3px;position:relative;z-index:1}
+.rpt-header-right{text-align:right;position:relative;z-index:1}
+.rpt-header-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(255,255,255,.2);backdrop-filter:blur(4px);margin-bottom:6px}
+.rpt-header-date{font-size:10px;opacity:.7}
+.orient-toggle{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);border:none;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:600;color:#fff;cursor:pointer;transition:all .15s;position:relative;z-index:1}
+.orient-toggle:hover{background:rgba(255,255,255,.25)}
+
+/* ── KPI grid ────────────────────────────────────────────── */
+.kgrid{display:grid;gap:7px}
+.kcard{background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kbar{position:absolute;left:0;top:0;bottom:0;width:3px}
+.klbl{font-size:9px;color:var(--gray400);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;margin-left:8px}
+.kval{font-size:18px;font-weight:800;color:var(--gray900);margin-left:8px}
+.kdelta{margin-top:3px;margin-left:8px}
+
+/* ── Table ───────────────────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl thead tr{background:var(--gray50)}
+.tbl th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--gray600);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl th.r,.tbl td.r{text-align:right}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--gray100);color:var(--gray700);vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tbody tr:hover{background:var(--gray50)}
+
+/* ── Pills ───────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700;white-space:nowrap}
+.pg{background:#dcfce7;color:#15803d}
+.pv{background:#ede9fe;color:#6d28d9}
+.pb{background:#dbeafe;color:#1d4ed8}
+.pa{background:#fef3c7;color:#92400e}
+.pr{background:#fee2e2;color:#b91c1c}
+.pp{background:#f3f4f6;color:#374151}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+.finput{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;outline:none;transition:border .15s;background:#fff}
+.finput:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.1)}
+.fsel2{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;outline:none;background:#fff}
+
+/* ── Search bar ──────────────────────────────────────────── */
+.sbar{position:relative;display:flex;align-items:center}
+.sbar svg{position:absolute;left:9px;width:13px;height:13px;stroke:var(--gray400);fill:none}
+.sbar input{padding:6px 10px 6px 30px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:inherit;outline:none;background:var(--gray50);transition:all .15s}
+.sbar input:focus{background:#fff;border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.1)}
+
+/* ── Pagination ──────────────────────────────────────────── */
+.pagination{display:flex;align-items:center;justify-content:between;gap:6px;padding:12px 16px;border-top:1px solid var(--border);background:var(--gray50);flex-wrap:wrap}
+.pag-info{font-size:11px;color:var(--gray400);margin-right:auto}
+.pag-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:var(--gray700);transition:all .12s}
+.pag-btn:hover:not(:disabled){border-color:var(--violet);color:var(--violet)}
+.pag-btn:disabled{opacity:.4;cursor:default}
+.pag-btn.active{background:var(--violet);color:#fff;border-color:var(--violet)}
+.per-page{font-size:11px;color:var(--gray600);display:flex;align-items:center;gap:5px}
+.per-page select{padding:3px 6px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:inherit;background:#fff;outline:none}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toastContainer{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{padding:10px 16px;border-radius:10px;font-size:12px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.15);animation:toastIn .2s ease;pointer-events:none;max-width:300px}
+.toast.ok{background:#fff;border:1px solid var(--green);color:var(--green)}
+.toast.err{background:#fff;border:1px solid var(--red);color:var(--red)}
+.toast.info{background:var(--violet);color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── Modal overlay ───────────────────────────────────────── */
+.sm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.sm-box{background:#fff;border-radius:16px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:slideUp .2s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.sm-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.sm-ttl{font-size:14px;font-weight:700}
+.sm-close{width:28px;height:28px;border:none;background:var(--gray100);border-radius:7px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--gray400)}
+.sm-close:hover{background:var(--gray200)}
+.sm-body{padding:20px}
+.sm-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;background:var(--gray50)}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.field label{font-size:11px;font-weight:600;color:var(--gray600)}
+
+/* ── Orientation toggle area ─────────────────────────────── */
+.orient-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--gray50);border-bottom:1px solid var(--border);font-size:11px;color:var(--gray600)}
+.orient-bar button{padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;font-size:10px;font-weight:600;cursor:pointer;color:var(--gray700);transition:all .12s}
+.orient-bar button.active{background:var(--violet);color:#fff;border-color:var(--violet)}
+
+/* ── Compare banner ──────────────────────────────────────── */
+.cmp-banner{padding:10px 16px;background:var(--violet-light);border-radius:10px;font-size:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:2px}
+.cmp-banner > div b{color:var(--green)}
+
+/* ── Print ───────────────────────────────────────────────── */
+@media print {
+  body{background:#fff}
+  .phdr,.panel:has(#rpt-nav),.pactions,#rpt-nav,.period-bar,.orient-bar,.pag-btn,button,.btn,#toastContainer{display:none!important}
+  .panel{box-shadow:none;border:1px solid #ddd}
+  .rpt-header-card{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media(max-width:768px){
+  .kgrid{grid-template-columns:1fr 1fr!important}
+  #rpt-nav{flex-wrap:wrap}
+  .rpt-family-btn{font-size:11px;padding:6px 10px}
+  .phdr{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── EN-TÊTE ────────────────────────────────────────────── -->
+  <div class="phdr" style="margin-bottom:2px">
+    <div class="phdr-l">
+      <div class="picon">
+        <svg viewBox="0 0 24 24"><path d="M2 12l4-4 3 3 5-6M3 20h18"/></svg>
+      </div>
+      <div>
+        <div class="ptitle">Rapports PMS</div>
+        <div class="psub" id="rpt-period-label">Aujourd'hui</div>
+      </div>
+    </div>
+    <div class="pactions">
+      <button class="btn btn-g btn-sm" id="cmpBtn" onclick="toggleCompare(this)">↔ Comparer N-1</button>
+      <button class="btn btn-g btn-sm" onclick="exportPDF()">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none"><path d="M12 16l-4-4h3V4h2v8h3l-4 4zM4 20h16"/></svg> PDF
+      </button>
+      <button class="btn btn-g btn-sm" onclick="exportExcel()">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 8l8 8M16 8l-8 8"/></svg> Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SÉLECTEUR PÉRIODE ─────────────────────────────────── -->
+  <div class="panel period-bar">
+    <div style="padding:7px 12px">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:600;color:var(--gray600);white-space:nowrap">Période :</span>
+        <div style="display:flex;gap:2px;background:var(--gray100);border-radius:6px;padding:2px">
+          <button class="rpd active" data-p="today"     onclick="selectPeriod('today',this)">Aujourd'hui</button>
+          <button class="rpd"        data-p="yesterday" onclick="selectPeriod('yesterday',this)">Hier</button>
+          <button class="rpd"        data-p="week"      onclick="selectPeriod('week',this)">Semaine</button>
+          <button class="rpd"        data-p="month"     onclick="selectPeriod('month',this)">Mois</button>
+          <button class="rpd"        data-p="year"      onclick="selectPeriod('year',this)">Année</button>
+          <button class="rpd"        data-p="custom"    onclick="selectPeriod('custom',this)">Perso</button>
+        </div>
+        <div id="customDates" style="display:none;gap:6px;align-items:center">
+          <input type="date" id="rDateFrom" class="finput" style="padding:5px 8px;font-size:11px;width:130px">
+          <span style="color:var(--gray400);font-size:11px">→</span>
+          <input type="date" id="rDateTo"   class="finput" style="padding:5px 8px;font-size:11px;width:130px">
+        </div>
+        <button class="btn btn-v btn-sm" onclick="applyPeriod()" style="white-space:nowrap">
+          <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:#fff;fill:none"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5l3.5 3.5"/></svg>
+          Rechercher
+        </button>
+        <span id="cmpLabel" style="display:none;font-size:10px;color:var(--violet);background:var(--violet-light);padding:3px 8px;border-radius:10px;font-weight:600">↔ vs N-1 actif</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NAV FAMILLES ──────────────────────────────────────── -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;position:relative" id="rpt-nav">
+
+    <div class="rpt-family-wrap">
+      <button class="rpt-family-btn active" onclick="toggleFamily('exp',this)">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px;stroke:currentColor;fill:none"><rect x="2" y="2" width="12" height="3" rx="1"/><rect x="2" y="7" width="8" height="3" rx="1"/><rect x="2" y="12" width="5" height="2" rx="1"/></svg>
+        Exploitation
+        <svg viewBox="0 0 10 6" style="width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:1.5;margin-left:2px;transition:transform .15s" id="arr-exp"><path d="M1 1l4 4 4-4"/></svg>
+      </button>
+      <div class="rpt-dropdown" id="drop-exp" style="display:none">
+        <button class="rpt-item active" onclick="pickReport('exp01',this)"><span class="rpt-code">EXP-01</span>Occupation</button>
+        <button class="rpt-item" onclick="pickReport('exp02',this)"><span class="rpt-code">EXP-02</span>Recherche client</button>
+        <button class="rpt-item" onclick="pickReport('exp03',this)"><span class="rpt-code">EXP-03</span>Petit-déjeuner</button>
+        <button class="rpt-item" onclick="pickReport('exp04',this)"><span class="rpt-code">EXP-04</span>PDJ pré-facturés</button>
+        <button class="rpt-item" onclick="pickReport('exp05',this)"><span class="rpt-code">EXP-05</span>Planning jour</button>
+        <button class="rpt-item" onclick="pickReport('exp06',this)"><span class="rpt-code">EXP-06</span>Gouvernante</button>
+        <button class="rpt-item" onclick="pickReport('exp07',this)"><span class="rpt-code">EXP-07</span>Attribution ch.</button>
+        <button class="rpt-item" onclick="pickReport('exp08',this)"><span class="rpt-code">EXP-08</span>Groupes</button>
+        <button class="rpt-item" onclick="pickReport('exp09',this)"><span class="rpt-code">EXP-09</span>No-shows</button>
+        <button class="rpt-item" onclick="pickReport('exp10',this)"><span class="rpt-code">EXP-10</span>Départs restants</button>
+        <button class="rpt-item" onclick="pickReport('exp11',this)"><span class="rpt-code">EXP-11</span>Prévision repas</button>
+        <button class="rpt-item" onclick="pickReport('exp13',this)"><span class="rpt-code">EXP-13</span>F&amp;B</button>
+        <button class="rpt-item" onclick="pickReport('exp14',this)"><span class="rpt-code">EXP-14</span>Occupation prévisionnelle</button>
+        <button class="rpt-item" onclick="pickReport('exp15',this)"><span class="rpt-code">EXP-15</span>Productivité ménage</button>
+      </div>
+    </div>
+
+    <div class="rpt-family-wrap">
+      <button class="rpt-family-btn" onclick="toggleFamily('sta',this)">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px;stroke:currentColor;fill:none"><path d="M2 12l3-4 3 2 3-5 3 3"/></svg>
+        Statistiques
+        <svg viewBox="0 0 10 6" style="width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:1.5;margin-left:2px;transition:transform .15s" id="arr-sta"><path d="M1 1l4 4 4-4"/></svg>
+      </button>
+      <div class="rpt-dropdown" id="drop-sta" style="display:none">
+        <button class="rpt-item" onclick="pickReport('sta01',this)"><span class="rpt-code">STA-01</span>Dashboard cumulé</button>
+        <button class="rpt-item" onclick="pickReport('sta02',this)"><span class="rpt-code">STA-02</span>Analyse tarifs</button>
+        <button class="rpt-item" onclick="pickReport('sta03',this)"><span class="rpt-code">STA-03</span>Allotements</button>
+        <button class="rpt-item" onclick="pickReport('sta04',this)"><span class="rpt-code">STA-04</span>Analyse clients</button>
+        <button class="rpt-item" onclick="pickReport('sta05',this)"><span class="rpt-code">STA-05</span>Canaux distribution</button>
+        <button class="rpt-item" onclick="pickReport('sta06',this)"><span class="rpt-code">STA-06</span>Nationalités</button>
+        <button class="rpt-item" onclick="pickReport('sta07',this)"><span class="rpt-code">STA-07</span>INSEE</button>
+        <button class="rpt-item" onclick="pickReport('sta08',this)"><span class="rpt-code">STA-08</span>Rotation ch.</button>
+        <button class="rpt-item" onclick="pickReport('sta09',this)"><span class="rpt-code">STA-09</span>Turnover chambres</button>
+      </div>
+    </div>
+
+    <div class="rpt-family-wrap">
+      <button class="rpt-family-btn" onclick="toggleFamily('fin',this)">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px;stroke:currentColor;fill:none"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M6 7h3M6 9h3"/></svg>
+        Financier
+        <svg viewBox="0 0 10 6" style="width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:1.5;margin-left:2px;transition:transform .15s" id="arr-fin"><path d="M1 1l4 4 4-4"/></svg>
+      </button>
+      <div class="rpt-dropdown" id="drop-fin" style="display:none">
+        <button class="rpt-item" onclick="pickReport('fin01',this)"><span class="rpt-code">FIN-01</span>Prestations</button>
+        <button class="rpt-item" onclick="pickReport('fin02',this)"><span class="rpt-code">FIN-02</span>Règlements</button>
+        <button class="rpt-item" onclick="pickReport('fin03',this)"><span class="rpt-code">FIN-03</span>Comptable</button>
+        <button class="rpt-item" onclick="pickReport('fin04',this)"><span class="rpt-code">FIN-04</span>Balance âgée</button>
+        <button class="rpt-item" onclick="pickReport('fin05',this)"><span class="rpt-code">FIN-05</span>Contrôle soldes</button>
+        <button class="rpt-item" onclick="pickReport('fin06',this)"><span class="rpt-code">FIN-06</span>Petite caisse</button>
+        <button class="rpt-item" onclick="pickReport('fin07',this)"><span class="rpt-code">FIN-07</span>Recouchant</button>
+        <button class="rpt-item" onclick="pickReport('fin08',this)"><span class="rpt-code">FIN-08</span>Position globale</button>
+        <button class="rpt-item" onclick="pickReport('fin09',this)"><span class="rpt-code">FIN-09</span>TVA</button>
+        <button class="rpt-item" onclick="pickReport('fin10',this)"><span class="rpt-code">FIN-10</span>Situation fin.</button>
+        <button class="rpt-item" onclick="pickReport('fin11',this)"><span class="rpt-code">FIN-11</span>Rapport caisse</button>
+        <button class="rpt-item" onclick="pickReport('taxe',this)"><span class="rpt-code" style="background:#fef3c7;color:#78350f">FIN-12</span>Taxe de séjour</button>
+        <button class="rpt-item" onclick="pickReport('fin13',this)"><span class="rpt-code">FIN-13</span>Clôture caisse</button>
+        <button class="rpt-item" onclick="pickReport('fin14',this)"><span class="rpt-code">FIN-14</span>Commissions OTA</button>
+        <button class="rpt-item" onclick="pickReport('fin15',this)"><span class="rpt-code">FIN-15</span>Taxe séjour (déclarative)</button>
+      </div>
+    </div>
+
+    <div class="rpt-family-wrap">
+      <button class="rpt-family-btn" onclick="toggleFamily('cli',this)">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px;stroke:currentColor;fill:none"><circle cx="7" cy="6" r="3"/><path d="M1 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>
+        Clients
+        <svg viewBox="0 0 10 6" style="width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:1.5;margin-left:2px;transition:transform .15s" id="arr-cli"><path d="M1 1l4 4 4-4"/></svg>
+      </button>
+      <div class="rpt-dropdown" id="drop-cli" style="display:none">
+        <button class="rpt-item" onclick="pickReport('cli01',this)"><span class="rpt-code">CLI-01</span>Débiteurs</button>
+        <button class="rpt-item" onclick="pickReport('cli02',this)"><span class="rpt-code">CLI-02</span>Arrhes &amp; acomptes</button>
+        <button class="rpt-item" onclick="pickReport('cli03',this)"><span class="rpt-code">CLI-03</span>Crédits clients</button>
+        <button class="rpt-item" onclick="pickReport('cli04',this)"><span class="rpt-code">CLI-04</span>États antérieurs</button>
+        <button class="rpt-item" onclick="pickReport('cli05',this)"><span class="rpt-code">CLI-05</span>Stats CLV</button>
+      </div>
+    </div>
+
+    <div class="rpt-family-wrap">
+      <button class="rpt-family-btn" onclick="toggleFamily('dir',this)">
+        <svg viewBox="0 0 16 16" style="width:13px;height:13px;stroke:currentColor;fill:none"><path d="M14 4H2v8h12V4zm-2 2v4M4 6h6"/></svg>
+        Direction
+        <svg viewBox="0 0 10 6" style="width:9px;height:9px;fill:none;stroke:currentColor;stroke-width:1.5;margin-left:2px;transition:transform .15s" id="arr-dir"><path d="M1 1l4 4 4-4"/></svg>
+      </button>
+      <div class="rpt-dropdown" id="drop-dir" style="display:none">
+        <button class="rpt-item" onclick="pickReport('dir01',this)"><span class="rpt-code">DIR-01</span>Synthèse direction</button>
+      </div>
+    </div>
+
+  </div><!-- /rpt-nav -->
+
+  <!-- ── CONTENU RAPPORT ───────────────────────────────────── -->
+  <div id="rapportArea"></div>
+
+</div><!-- /app -->
+
+<!-- ── TOAST CONTAINER ───────────────────────────────────── -->
+<div id="toastContainer"></div>
+
+<!-- ── MODAL OVERLAY ─────────────────────────────────────── -->
+<div id="smOverlay" style="display:none" class="sm-overlay" onclick="if(event.target===this)closeSM()">
+  <div class="sm-box">
+    <div class="sm-hd"><div class="sm-ttl" id="smTitle">Modal</div><button class="sm-close" onclick="closeSM()">✕</button></div>
+    <div class="sm-body" id="smBody"></div>
+    <div class="sm-foot" id="smFoot"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DONNÉES DE DÉMONSTRATION
+// ════════════════════════════════════════════════════════════
+const TODAY = new Date().toISOString().slice(0,10);
+
+const rooms = [
+  {num:'101',type:'single',  floor:1, price:80,  status:'occupied'},
+  {num:'102',type:'double',  floor:1, price:110, status:'occupied'},
+  {num:'103',type:'single',  floor:1, price:80,  status:'occupied'},
+  {num:'201',type:'suite',   floor:2, price:250, status:'occupied'},
+  {num:'202',type:'twin',    floor:2, price:130, status:'free'},
+];
+// Alias pour le JS
+const ROOMS_NUMBERED = rooms;
+
+const clients = [
+  {id:1, name:'Pierre Bernard',   email:'pierre.bernard@orange.fr', phone:'06 12 34 56 78', visits:5, ca:2400, tag:'VIP',   checkin:TODAY,     hasVisited:true},
+  {id:2, name:'Linda Chennoun',   email:'linda.chennoun@gmail.com',  phone:'07 98 76 54 32', visits:2, ca:850,  tag:null,    checkin:TODAY,     hasVisited:true},
+  {id:3, name:'Sophie Dubois',    email:'sophie.dubois@yahoo.fr',    phone:'06 55 44 33 22', visits:1, ca:240,  tag:null,    checkin:TODAY,     hasVisited:false},
+  {id:4, name:'Ali Larabi',       email:'ali.larabi@hotmail.com',    phone:'06 77 88 99 00', visits:3, ca:1500, tag:'Fidèle',checkin:TODAY,     hasVisited:true},
+  {id:5, name:'Marc Dupuis',      email:'m.dupuis@adcytherix.com',   phone:'01 23 45 67 89', visits:8, ca:4200, tag:'PRO',   checkin:'2026-03-15',hasVisited:true},
+  {id:6, name:'Claire Dupont',    email:'claire@wedding.fr',         phone:'06 11 22 33 44', visits:1, ca:400,  tag:null,    checkin:'2026-04-01',hasVisited:false},
+  {id:7, name:'James Thompson',   email:'j.thompson@company.co.uk',  phone:'+44 7700 900123',visits:2, ca:600,  tag:null,    checkin:'2026-03-14',hasVisited:true},
+  {id:8, name:'Nadia Svensson',   email:'nadia.s@gmail.se',          phone:'+46 70 123 4567', visits:1, ca:380, tag:null,    checkin:'2026-02-20',hasVisited:false},
+];
+
+const groups = [
+  {name:'Séminaire Tech 2026', contact:'Marc Dupuis', rooms:8, arrival:'2026-05-15', departure:'2026-05-17', amount:5600, status:'confirmed', participants:['Marc Dupuis','Sarah Martin','Jean-Paul Morel','Émilie Roux','Antoine Legrand','Laura Bernard','David Rousseau','Claire Simon'], notes:'Salle de conférence requise · Repas de groupe le soir'},
+  {name:'Mariage Dupont-Lebrun', contact:'Claire Dupont', rooms:12, arrival:'2026-06-20', departure:'2026-06-22', amount:8400, status:'tentative', participants:['Claire Dupont','Thomas Lebrun','Marie Dupont','Paul Lebrun'], notes:'Chambre bridal suite obligatoire'},
+];
+
+const reservations = [
+  {id:'RES-001', clientId:1, room:'101', checkin:TODAY, checkout:new Date(new Date(TODAY).getTime()+3*86400000).toISOString().slice(0,10), nights:3, montant:480, status:'checked_in', canal:'Direct', dates:`${TODAY} – +3j`, isDummyRoom:false},
+  {id:'RES-002', clientId:2, room:'102', checkin:TODAY, checkout:new Date(new Date(TODAY).getTime()+2*86400000).toISOString().slice(0,10), nights:2, montant:220, status:'checked_in', canal:'Booking.com', dates:`${TODAY} – +2j`, isDummyRoom:false},
+  {id:'RES-003', clientId:3, room:'103', checkin:TODAY, checkout:new Date(new Date(TODAY).getTime()+86400000).toISOString().slice(0,10),   nights:1, montant:110, status:'Confirmee', canal:'Airbnb', dates:`${TODAY} – +1j`, isDummyRoom:false},
+  {id:'RES-004', clientId:4, room:'201', checkin:new Date(new Date(TODAY).getTime()-2*86400000).toISOString().slice(0,10), checkout:new Date(new Date(TODAY).getTime()+4*86400000).toISOString().slice(0,10), nights:6, montant:1500, status:'checked_in', canal:'Expedia', dates:'-2j – +4j', isDummyRoom:false},
+  {id:'RES-005', clientId:5, room:'202', checkin:'2026-03-15', checkout:'2026-03-18', nights:3, montant:390, status:'checked_out', canal:'Booking.com', dates:'15-18/03', isDummyRoom:false},
+  {id:'RES-006', clientId:6, room:'101', checkin:'2026-04-01', checkout:'2026-04-03', nights:2, montant:220, status:'Confirmee', canal:'Direct', dates:'01-03/04', isDummyRoom:false},
+  {id:'RES-007', clientId:7, room:'102', checkin:'2026-03-14', checkout:'2026-03-16', nights:2, montant:260, status:'checked_out', canal:'Direct', dates:'14-16/03', isDummyRoom:false},
+  {id:'RES-008', clientId:1, room:'202', checkin:'2026-01-10', checkout:'2026-01-14', nights:4, montant:520, status:'checked_out', canal:'Direct', dates:'10-14/01', isDummyRoom:false},
+];
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function clientById(id){ return clients.find(c=>c.id===id)||null; }
+
+function getPeriodRange(p){
+  const d=new Date(); const iso=s=>s.toISOString().slice(0,10);
+  if(p==='today')     return {from:iso(d), to:iso(d)};
+  if(p==='yesterday'){const y=new Date(d); y.setDate(y.getDate()-1); return {from:iso(y),to:iso(y)};}
+  if(p==='week'){const s=new Date(d); s.setDate(s.getDate()-s.getDay()+1); const e=new Date(s); e.setDate(e.getDate()+6); return {from:iso(s),to:iso(e)};}
+  if(p==='month'){const s=new Date(d.getFullYear(),d.getMonth(),1); const e=new Date(d.getFullYear(),d.getMonth()+1,0); return {from:iso(s),to:iso(e)};}
+  if(p==='year') return {from:`${d.getFullYear()}-01-01`,to:`${d.getFullYear()}-12-31`};
+  if(p==='custom') return {from:rptDateFrom,to:rptDateTo};
+  return {from:iso(d),to:iso(d)};
+}
+
+function getPeriodLabel(){
+  const p=activePeriod;
+  if(p==='today')     return "Aujourd'hui";
+  if(p==='yesterday') return "Hier";
+  if(p==='week')      return "Cette semaine";
+  if(p==='month')     return "Ce mois";
+  if(p==='year')      return "Cette année";
+  if(p==='custom')    return `${rptDateFrom} → ${rptDateTo}`;
+  return p;
+}
+
+function fmt2(n){return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2}).format(n||0)+'€';}
+function fmtN(n){return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:1}).format(n||0);}
+
+function toast(msg, type='info'){
+  const t=document.createElement('div');
+  t.className='toast '+(type==='ok'?'ok':type==='err'?'err':'info');
+  t.textContent=msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+function openSM(title, body, foot){
+  document.getElementById('smTitle').innerHTML=title;
+  document.getElementById('smBody').innerHTML=body;
+  document.getElementById('smFoot').innerHTML=foot||'';
+  document.getElementById('smOverlay').style.display='flex';
+}
+function closeSM(){ document.getElementById('smOverlay').style.display='none'; }
+function openClientModal(id){
+  const c=clientById(id);
+  if(!c) return;
+  openSM(`👤 ${c.name}`,`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+      <div><label style="font-size:10px;color:var(--gray400);font-weight:600">EMAIL</label><div style="font-weight:600;margin-top:2px">${c.email}</div></div>
+      <div><label style="font-size:10px;color:var(--gray400);font-weight:600">TÉLÉPHONE</label><div style="font-weight:600;margin-top:2px">${c.phone}</div></div>
+      <div><label style="font-size:10px;color:var(--gray400);font-weight:600">SÉJOURS</label><div style="font-weight:600;margin-top:2px">${c.visits}</div></div>
+      <div><label style="font-size:10px;color:var(--gray400);font-weight:600">CLV</label><div style="font-weight:600;margin-top:2px;color:var(--violet)">${fmt2(c.ca)}</div></div>
+    </div>
+  `,`<button class="btn btn-g" onclick="closeSM()">Fermer</button>`);
+}
+function doCheckout(id){ toast('Check-out lancé pour client #'+id,'ok'); }
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let currentRapport = 'exp01';
+let rptDateFrom = TODAY, rptDateTo = TODAY;
+let activePeriod = 'today';
+let compareEnabled = false;
+let chartInst = null;
+let printOrientation = 'landscape';
+
+// ════════════════════════════════════════════════════════════
+// HELPERS RAPPORT
+// ════════════════════════════════════════════════════════════
+const REPORT_LABELS = {
+  exp01:'Occupation temps réel', exp02:'Recherche client (Cardex)', exp03:'Petit-déjeuner',
+  exp04:'PDJ pré-facturés', exp05:'Planning du jour', exp06:'Gouvernante',
+  exp07:'Attribution chambres', exp08:'Groupes', exp09:'No-shows',
+  exp10:'Départs restants', exp11:'Prévision repas', exp12:'Devises', exp13:'F&B',
+  exp14:'Occupation prévisionnelle', exp15:'Productivité ménage',
+  sta01:'Dashboard cumulé (KPI)', sta02:'Analyse tarifs', sta03:'Allotements',
+  sta04:'Analyse clients', sta05:'Canaux distribution', sta06:'Nationalités',
+  sta07:'Déclaration INSEE', sta08:'Rotation chambres', sta09:'Turnover chambres',
+  fin01:'Journal prestations', fin02:'Journal règlements', fin03:'Compte de résultat',
+  fin04:'Balance âgée', fin05:'Contrôle soldes', fin06:'Petite caisse',
+  fin07:'Recouchant', fin08:'Position globale', fin09:'Déclaration TVA',
+  fin10:'Situation financière', fin11:'Rapport de caisse', taxe:'Taxe de séjour',
+  fin13:'Clôture caisse', fin14:'Commissions OTA', fin15:'Taxe séjour (déclarative)',
+  cli01:'Débiteurs', cli02:'Arrhes & acomptes', cli03:'Crédits clients',
+  cli04:'États antérieurs', cli05:'Stats CLV',
+  dir01:'Synthèse direction'
+};
+const FAMILY_LABELS = {exp:'Exploitation',sta:'Statistiques',fin:'Financier',cli:'Clients',dir:'Direction'};
+const FAMILY_COLORS = {exp:'var(--violet)',sta:'var(--blue)',fin:'var(--green)',cli:'var(--amber)',dir:'var(--gray700)'};
+const FAMILY_ICONS  = {
+  exp:'<svg viewBox="0 0 16 16" style="width:12px;height:12px;stroke:currentColor;fill:none"><rect x="2" y="2" width="12" height="3" rx="1"/><rect x="2" y="7" width="8" height="3" rx="1"/><rect x="2" y="12" width="5" height="2" rx="1"/></svg>',
+  sta:'<svg viewBox="0 0 16 16" style="width:12px;height:12px;stroke:currentColor;fill:none"><path d="M2 12l3-4 3 2 3-5 3 3"/></svg>',
+  fin:'<svg viewBox="0 0 16 16" style="width:12px;height:12px;stroke:currentColor;fill:none"><circle cx="8" cy="8" r="6"/><path d="M8 5v6M6 7h3M6 9h3"/></svg>',
+  cli:'<svg viewBox="0 0 16 16" style="width:12px;height:12px;stroke:currentColor;fill:none"><circle cx="7" cy="6" r="3"/><path d="M1 14c0-3 2.7-5 6-5s6 2 6 5"/></svg>',
+  dir:'<svg viewBox="0 0 16 16" style="width:12px;height:12px;stroke:currentColor;fill:none"><path d="M14 4H2v8h12V4zm-2 2v4M4 6h6"/></svg>',
+};
+
+function getReportFamily(type){
+  if(type.startsWith('exp')) return 'exp';
+  if(type.startsWith('sta')) return 'sta';
+  if(type.startsWith('fin')||type==='taxe') return 'fin';
+  if(type.startsWith('cli')) return 'cli';
+  if(type.startsWith('dir')) return 'dir';
+  return 'exp';
+}
+
+function buildReportHeader(type){
+  const fam = getReportFamily(type);
+  const label = REPORT_LABELS[type]||type.toUpperCase();
+  const code = type.toUpperCase().replace('TAXE','FIN-12');
+  const famLabel = FAMILY_LABELS[fam];
+  const famColor = FAMILY_COLORS[fam];
+  const famIcon  = FAMILY_ICONS[fam];
+  const now = new Date();
+  const periodLabel = getPeriodLabel();
+  const orientBtn = `<button class="orient-toggle" onclick="toggleOrientation(this)" title="Basculer orientation impression">
+    <span id="orientLabel">${printOrientation==='landscape'?'🌅 Paysage':'📄 Portrait'}</span>
+  </button>`;
+  return `<div class="rpt-header-card" id="rpt-main-header">
+    <div>
+      <div class="rpt-header-badge">${famIcon} ${famLabel}</div>
+      <div class="rpt-header-title">${code} — ${label}</div>
+      <div class="rpt-header-sub">Période : ${periodLabel}</div>
+    </div>
+    <div class="rpt-header-right">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        ${orientBtn}
+        <div class="rpt-header-date">Généré le ${now.toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})} à ${now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+        <div style="font-size:11px;opacity:.75;font-weight:600">Flowtym PMS</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleOrientation(btn){
+  printOrientation = printOrientation==='landscape'?'portrait':'landscape';
+  const lbl = document.getElementById('orientLabel');
+  if(lbl) lbl.textContent = printOrientation==='landscape'?'🌅 Paysage':'📄 Portrait';
+  toast(`Impression : ${printOrientation==='landscape'?'Paysage A3/A4h':'Portrait A4'}`, '');
+}
+
+// Tableau paginé (pour les longs tableaux)
+const PAGINATION_STATE = {};
+function paginateTable(tableId, rows, perPage=20){
+  PAGINATION_STATE[tableId]={rows, perPage, page:1};
+  renderPage(tableId);
+}
+function renderPage(tableId){
+  const s=PAGINATION_STATE[tableId]; if(!s) return;
+  const {rows,perPage,page}=s;
+  const total=rows.length;
+  const totalPages=Math.max(1,Math.ceil(total/perPage));
+  const start=(page-1)*perPage, end=Math.min(start+perPage,total);
+  const tbody=document.getElementById('tbody-'+tableId);
+  if(tbody) tbody.innerHTML=rows.slice(start,end).join('');
+  const pc=document.getElementById('pag-'+tableId);
+  if(!pc||totalPages<=1){if(pc)pc.style.display='none';return;}
+  pc.style.display='flex';
+  // build page numbers
+  let pnums='';
+  const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+  let pages=[];
+  if(totalPages<=7) pages=range(1,totalPages);
+  else if(page<=4) pages=[...range(1,5),null,totalPages];
+  else if(page>=totalPages-3) pages=[1,null,...range(totalPages-4,totalPages)];
+  else pages=[1,null,...range(page-1,page+1),null,totalPages];
+  pages.forEach(p=>{
+    if(p===null){pnums+=`<span style="padding:0 4px;color:var(--gray400)">…</span>`; return;}
+    pnums+=`<button class="pag-btn${p===page?' active':''}" onclick="goPage('${tableId}',${p})">${p}</button>`;
+  });
+  pc.innerHTML=`
+    <span class="pag-info">${total} résultat${total>1?'s':''} · Page ${page}/${totalPages}</span>
+    <button class="pag-btn" onclick="goPage('${tableId}',1)" ${page===1?'disabled':''} title="Première page">«</button>
+    <button class="pag-btn" onclick="goPage('${tableId}',${page-1})" ${page===1?'disabled':''} title="Précédent">‹</button>
+    ${pnums}
+    <button class="pag-btn" onclick="goPage('${tableId}',${page+1})" ${page===totalPages?'disabled':''} title="Suivant">›</button>
+    <button class="pag-btn" onclick="goPage('${tableId}',${totalPages})" ${page===totalPages?'disabled':''} title="Dernière page">»</button>
+    <span class="per-page">Afficher <select onchange="changePerPage('${tableId}',this.value)">
+      <option value="20" ${perPage===20?'selected':''}>20</option>
+      <option value="50" ${perPage===50?'selected':''}>50</option>
+      <option value="100" ${perPage===100?'selected':''}>100</option>
+    </select> / page</span>`;
+}
+function goPage(tableId,p){
+  PAGINATION_STATE[tableId].page=p;
+  renderPage(tableId);
+  const el=document.getElementById('tbody-'+tableId);
+  if(el) el.closest('.panel')?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function changePerPage(tableId,v){
+  PAGINATION_STATE[tableId].perPage=parseInt(v);
+  PAGINATION_STATE[tableId].page=1;
+  renderPage(tableId);
+}
+
+// Keyboard pagination
+document.addEventListener('keydown',e=>{
+  const tableId=Object.keys(PAGINATION_STATE)[0];
+  if(!tableId) return;
+  if(e.key==='ArrowRight') goPage(tableId, Math.min(PAGINATION_STATE[tableId].page+1, Math.ceil(PAGINATION_STATE[tableId].rows.length/PAGINATION_STATE[tableId].perPage)));
+  if(e.key==='ArrowLeft')  goPage(tableId, Math.max(PAGINATION_STATE[tableId].page-1, 1));
+});
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+const FAMILIES=['exp','sta','fin','cli','dir'];
+
+function selectPeriod(p,btn){
+  activePeriod=p;
+  document.querySelectorAll('.rpd').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('customDates').style.display=p==='custom'?'flex':'none';
+  if(p!=='custom') applyPeriod();
+}
+
+function applyPeriod(){
+  if(activePeriod==='custom'){
+    rptDateFrom=document.getElementById('rDateFrom')?.value||TODAY;
+    rptDateTo  =document.getElementById('rDateTo')?.value||TODAY;
+  } else {
+    const r=getPeriodRange(activePeriod);
+    rptDateFrom=r.from; rptDateTo=r.to;
+  }
+  const lbl=document.getElementById('rpt-period-label');
+  if(lbl) lbl.textContent=getPeriodLabel();
+  showRapport(currentRapport);
+}
+
+function toggleCompare(btn){
+  compareEnabled=!compareEnabled;
+  btn.style.background=compareEnabled?'var(--violet)':'';
+  btn.style.color=compareEnabled?'#fff':'';
+  const lbl=document.getElementById('cmpLabel');
+  if(lbl) lbl.style.display=compareEnabled?'inline-flex':'none';
+  showRapport(currentRapport);
+}
+
+function toggleFamily(fam, btn){
+  const drop=document.getElementById('drop-'+fam);
+  const isOpen=drop.style.display!=='none';
+  FAMILIES.forEach(f=>{
+    const d=document.getElementById('drop-'+f);
+    const b=document.querySelector(`.rpt-family-btn[onclick*="'${f}'"]`);
+    if(d) d.style.display='none';
+    if(b) b.classList.remove('active');
+    const arr=document.getElementById('arr-'+f);
+    if(arr) arr.style.transform='';
+  });
+  if(!isOpen){
+    drop.style.display='block';
+    btn.classList.add('active');
+    const arr=document.getElementById('arr-'+fam);
+    if(arr) arr.style.transform='rotate(180deg)';
+  }
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#rpt-nav')){
+    FAMILIES.forEach(f=>{
+      const d=document.getElementById('drop-'+f);
+      if(d) d.style.display='none';
+      const b=document.querySelector(`.rpt-family-btn[onclick*="'${f}'"]`);
+      if(b) b.classList.remove('active');
+      const arr=document.getElementById('arr-'+f);
+      if(arr) arr.style.transform='';
+    });
+  }
+});
+
+function pickReport(type, btn){
+  document.querySelectorAll('.rpt-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const fam=getReportFamily(type);
+  FAMILIES.forEach(f=>{
+    const b=document.querySelector(`.rpt-family-btn[onclick*="'${f}'"]`);
+    if(b) b.classList.toggle('active',f===fam);
+  });
+  showRapport(type);
+}
+
+// ════════════════════════════════════════════════════════════
+// AFFICHAGE RAPPORT
+// ════════════════════════════════════════════════════════════
+function showRapport(type){
+  currentRapport=type;
+  // destroy previous chart
+  if(chartInst){ try{chartInst.destroy();}catch(e){} chartInst=null; }
+  // reset pagination
+  Object.keys(PAGINATION_STATE).forEach(k=>delete PAGINATION_STATE[k]);
+
+  const area=document.getElementById('rapportArea');
+  const header=buildReportHeader(type);
+
+  const kpi=(lbl,val,bar,delta='')=>`<div class="kcard"><div class="kbar" style="background:${bar}"></div><div class="klbl">${lbl}</div><div class="kval">${val}</div>${delta?`<div class="kdelta up" style="font-size:10px;margin-left:8px">${delta}</div>`:''}</div>`;
+  const pill=(txt,cls)=>`<span class="pill ${cls}">${txt}</span>`;
+  const cmpBadge=(pct,up)=>compareEnabled?`<span style="font-size:9px;padding:2px 6px;border-radius:10px;background:${up?'var(--green-l)':'var(--red-l)'};color:${up?'var(--green)':'var(--red)'}">${up?'▲':'▼'} ${pct}% vs N-1</span>`:'';
+
+  const periodRange=getPeriodRange(activePeriod);
+  const pFrom=periodRange.from, pTo=periodRange.to;
+  const resasInPeriod=reservations.filter(r=>{
+    if(r.status==='Annulee') return false;
+    const cin=r.checkin||'', cout=r.checkout||'';
+    return cin<=pTo && cout>pFrom;
+  });
+
+  // ── FIN-12 TAXE ────────────────────────────────────────
+  if(type==='taxe'){
+    const cfg=window.TAXE_CFG||null;
+    if(!cfg){
+      area.innerHTML=header+`
+        <div class="panel" style="border-left:4px solid var(--amber)">
+          <div class="phd" style="background:var(--amber-l)">
+            <div class="ptit" style="color:var(--amber)">⚙️ Configuration requise</div>
+          </div>
+          <div class="pbody" style="text-align:center;padding:32px">
+            <div style="font-size:40px;margin-bottom:12px">🏛️</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:8px">Taxe de séjour non configurée</div>
+            <div style="font-size:13px;color:var(--gray400);margin-bottom:20px">Veuillez configurer la taxe de séjour avant de générer ce rapport.</div>
+            <button class="btn btn-v" onclick="openTaxeConfig()">
+              <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#fff;fill:none"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              Configurer Taxe de séjour
+            </button>
+          </div>
+        </div>`;
+      return;
+    }
+    renderTaxeRapport(area, cfg, pFrom, pTo, fmt2, pill, header);
+    return;
+  }
+
+  // ── DIR-01 ─────────────────────────────────────────────
+  if(type==='dir01'){
+    const kpis={to:75.4,adr:189,revpar:142.5,ca:28450};
+    const comparePrev={to:2.1,adr:5.2,revpar:8.3,ca:12.5};
+    const byChannel={Direct:42,Booking:28,Expedia:18,Airbnb:12};
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${Object.entries(kpis).map(([k,v])=>kpi(k.toUpperCase(),k==='ca'?fmt2(v):k==='to'?v+'%':'€'+v, 'var(--gray700)', comparePrev[k]+'%')).join('')}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div class="panel pbody"><div><div class="klbl" style="margin-left:0">Arrivées / Départs</div><div class="kval" style="margin-left:0;font-size:24px">12 / 8</div></div><div style="margin-top:16px"><div class="klbl" style="margin-left:0">Annulations</div><div class="kval" style="margin-left:0;color:var(--red);font-size:24px">2</div></div></div><div class="panel"><div class="phd"><div class="ptit">Occupation par canal</div></div><table class="tbl"><thead><tr><th>Canal</th><th class="r">Taux occupation</th></tr></thead><tbody>${Object.entries(byChannel).map(([k,v])=>`<tr><td>${k}</td><td class="r">${v}%</td></tr>`).join('')}</tbody></table></div></div>`;
+    return;
+  }
+  // ── FIN-13 Clôture caisse ──────────────────────────────
+  if(type==='fin13'){
+    const payments={CB:2952,Espèces:54,Virement:1150,Chèque:0};
+    const totalPayments=Object.values(payments).reduce((a,b)=>a+b,0);
+    const salesByService={'Hébergement':3560,'Petit-déjeuner':54,'Bar':0,'Pressing':0};
+    const totalSales=Object.values(salesByService).reduce((a,b)=>a+b,0);
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Total encaissé',fmt2(totalPayments),'var(--violet)')}${kpi('Total ventes',fmt2(totalSales),'var(--green)')}${kpi('Écart',fmt2(totalSales-totalPayments),'var(--amber)')}${kpi('Solde caisse',fmt2(541.50),'var(--blue)')}</div><div class="panel" style="margin-top:12px"><table class="tbl"><thead><tr><th>Mode</th><th class="r">Montant</th></tr></thead><tbody>${Object.entries(payments).map(([k,v])=>`<tr><td>${k}</td><td class="r">${fmt2(v)}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r">${fmt2(totalPayments)}</td></tr></tbody></table></div><div class="panel" style="margin-top:12px;padding:16px"><div style="background:var(--violet-light);border-radius:8px;padding:12px"><div style="font-weight:700;margin-bottom:8px;color:var(--violet)">Signature responsable</div><div style="display:flex;gap:16px;align-items:center"><input type="text" placeholder="Nom du responsable" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);outline:none"><button class="btn btn-v" onclick="toast('Clôture validée','ok')">Valider la clôture</button></div></div></div>`;
+    return;
+  }
+  // ── FIN-14 Commissions OTA ─────────────────────────────
+  if(type==='fin14'){
+    const commissions=[{ota:"Booking.com",ca:1250,commissionRate:15},{ota:"Expedia",ca:890,commissionRate:18},{ota:"Airbnb",ca:420,commissionRate:3}];
+    const totalCom=commissions.reduce((s,c)=>s+c.ca*c.commissionRate/100,0);
+    const totalCa=commissions.reduce((s,c)=>s+c.ca,0);
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('CA total OTA',fmt2(totalCa),'var(--blue)')}${kpi('Commissions totales',fmt2(totalCom),'var(--red)')}${kpi('Taux moyen',Math.round(totalCom/totalCa*100)+'%','var(--amber)')}</div><div class="panel" style="margin-top:12px"><table class="tbl"><thead><tr><th>OTA</th><th class="r">CA HT</th><th class="r">Taux comm.</th><th class="r">Commission</th></tr></thead><tbody>${commissions.map(c=>`<tr><td>${c.ota}</td><td class="r">${fmt2(c.ca)}</td><td class="r">${c.commissionRate}%</td><td class="r">${fmt2(c.ca*c.commissionRate/100)}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r">${fmt2(totalCa)}</td><td></td><td class="r">${fmt2(totalCom)}</td></tr></tbody></table></div>`;
+    return;
+  }
+  // ── FIN-15 ─────────────────────────────────────────────
+  if(type==='fin15'){
+    const taxesByNight=[{date:"2026-04-15",nuits:3,pax:2,tarif:2.50,total:15.00,exo:0},{date:"2026-04-16",nuits:2,pax:1,tarif:2.50,total:5.00,exo:1}];
+    const totalTaxe=taxesByNight.reduce((s,t)=>s+t.total,0);
+    const totalNuits=taxesByNight.reduce((s,t)=>s+t.nuits*t.pax,0);
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Montant total',fmt2(totalTaxe),'var(--green)')}${kpi('Nuitées taxables',totalNuits,'var(--violet)')}${kpi('Exonérations',taxesByNight.reduce((s,t)=>s+t.exo,0),'var(--amber)')}</div><div class="panel" style="margin-top:12px"><table class="tbl"><thead><tr><th>Date</th><th class="r">Nuits</th><th class="r">PAX</th><th class="r">Tarif/nuit</th><th class="r">Total</th></tr></thead><tbody>${taxesByNight.map(t=>`<tr><td>${t.date}</td><td class="r">${t.nuits}</td><td class="r">${t.pax}</td><td class="r">${fmt2(t.tarif)}</td><td class="r">${fmt2(t.total)}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td colspan="4">Total</td><td class="r">${fmt2(totalTaxe)}</td></tr></tbody></table><div class="pbody"><button class="btn btn-v" onclick="toast('Export format mairie (PDF)','ok')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#fff;fill:none;margin-right:4px"><path d="M12 16l-4-4h3V4h2v8h3l-4 4zM4 20h16"/></svg> Exporter PDF officiel</button></div></div>`;
+    return;
+  }
+  // ── EXP-14 ─────────────────────────────────────────────
+  if(type==='exp14'){
+    const forecast=[{days:7,occupancy:68},{days:15,occupancy:72},{days:30,occupancy:65}];
+    const conversionRate=78;
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${forecast.map(f=>kpi('J+'+f.days,f.occupancy+'%','var(--violet)')).join('')}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div class="panel pbody"><div class="klbl" style="margin-left:0">Taux de transformation</div><div class="kval" style="margin-left:0;color:var(--green);font-size:32px">${conversionRate}%</div></div><div class="panel pbody"><div class="klbl" style="margin-left:0">Annulations prévues</div><div class="kval" style="margin-left:0;color:var(--red);font-size:32px">3</div></div></div>`;
+    return;
+  }
+  // ── EXP-15 ─────────────────────────────────────────────
+  if(type==='exp15'){
+    const staff=[{name:"Nathalie R.",rooms:12,avgTime:25,conformity:98},{name:"Sophie M.",rooms:10,avgTime:22,conformity:95},{name:"Laura G.",rooms:8,avgTime:28,conformity:92}];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Temps moyen (départ)','25 min','var(--amber)')}${kpi('Temps moyen (recouche)','15 min','var(--blue)')}${kpi('Taux conformité','95%','var(--green)')}</div><div class="panel" style="margin-top:12px"><table class="tbl"><thead><tr><th>Femme de chambre</th><th class="r">Chambres</th><th class="r">Temps moy.</th><th class="r">Conformité</th></tr></thead><tbody>${staff.map(s=>`<tr><td>${s.name}</td><td class="r">${s.rooms}</td><td class="r">${s.avgTime} min</td><td class="r"><span class="pill ${s.conformity>=95?'pg':'pa'}">${s.conformity}%</span></td></tr>`).join('')}</tbody></table></div>`;
+    return;
+  }
+  // ── STA-09 ─────────────────────────────────────────────
+  if(type==='sta09'){
+    const roomsTurnover=[{num:"101",changes:12,avgGap:45,popularity:85},{num:"102",changes:8,avgGap:60,popularity:65},{num:"201",changes:15,avgGap:30,popularity:95}];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Rotation moyenne','6.2 jours','var(--blue)')}${kpi('Temps moyen ménage','45 min','var(--amber)')}${kpi('Top chambre','201','var(--violet)')}</div><div class="panel" style="margin-top:12px"><table class="tbl"><thead><tr><th>Chambre</th><th class="r">Changements</th><th class="r">Temps entre séjours (min)</th><th>Popularité</th></tr></thead><tbody>${roomsTurnover.map(r=>`<tr><td style="font-weight:600">${r.num}</td><td class="r">${r.changes}</td><td class="r">${r.avgGap} min</td><td><div style="background:var(--gray100);border-radius:4px;width:100%;max-width:120px;float:right"><div style="background:${r.popularity>=80?'var(--green)':'var(--violet)'};width:${r.popularity}%;height:6px;border-radius:4px"></div></div></td></tr>`).join('')}</tbody></table></div>`;
+    return;
+  }
+
+  // ── EXP-01 ─────────────────────────────────────────────
+  if(type==='exp01'){
+    const todayStr=pFrom;
+    const activeResas=reservations.filter(r=>{
+      if(['Annulee','checked_out'].includes(r.status)) return false;
+      return r.checkin<=todayStr && r.checkout>todayStr;
+    });
+    const occupiedNums=new Set(activeResas.map(r=>r.room));
+    const occCount=rooms.filter(r=>occupiedNums.has(r.num)).length;
+    const freeCount=rooms.length-occCount;
+    const toP=rooms.length?Math.round(occCount/rooms.length*100):0;
+    const totalRev=activeResas.reduce((s,r)=>{const rm=rooms.find(x=>x.num===r.room);return s+(rm?.price||0);},0);
+    const adr=occCount?Math.round(totalRev/occCount):0;
+    const revpar=rooms.length?Math.round(totalRev/rooms.length):0;
+    const dateLabel=new Date(todayStr).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    const roomRows=rooms.map(rm=>{
+      const resa=activeResas.find(r=>r.room===rm.num);
+      const c=resa?clientById(resa.clientId):null;
+      const status=resa?(resa.status==='checked_in'?pill('Occupée','pb'):pill('Réservée','pv')):pill('Libre','pg');
+      return `<tr><td><strong>${rm.num}</strong></td><td style="text-transform:capitalize">${rm.type}</td><td>${status}</td><td>${c?c.name:'—'}</td><td>${resa?.checkin?new Date(resa.checkin).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'—'}</td><td>${resa?.checkout?new Date(resa.checkout).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}):'—'}</td><td class="r">${resa?fmt2(rm.price):'—'}</td></tr>`;
+    });
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi("TO% aujourd'hui",toP+'%','var(--violet)',cmpBadge('2.5',true))}${kpi('Chambres occupées',`${occCount}/${rooms.length}`,'var(--green)','')}${kpi('Chambres libres',freeCount,'var(--red)','')}${kpi('RevPAR',fmt2(revpar),'#3b82f6',cmpBadge('3.1',true))}</div><div class="panel"><div class="phd"><div class="ptit">Occupation par chambre — ${dateLabel}</div><div class="pmeta">Temps réel</div></div><table class="tbl"><thead><tr><th>Chambre</th><th>Type</th><th>Statut</th><th>Client</th><th>Arrivée</th><th>Départ</th><th class="r">Prix/nuit</th></tr></thead><tbody id="tbody-t01">${roomRows.join('')}</tbody></table><div id="pag-t01" class="pagination" style="display:none"></div></div>`;
+    if(roomRows.length>20) paginateTable('t01', roomRows);
+
+  } else if(type==='exp02'){
+    area.innerHTML=header+`<div class="panel"><div class="phd"><div class="ptit">Recherche client (Cardex)</div><div class="sbar" style="width:300px"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="M10 10l3 3"/></svg><input type="text" id="exp02q" placeholder="Nom, email, téléphone..." oninput="exp02Search()" style="width:220px"></div></div><div id="exp02res"><table class="tbl"><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th class="r">Séjours</th><th class="r">CA Total</th><th>Dernier séjour</th></tr></thead><tbody>${clients.map(c=>`<tr onclick="openClientModal(${c.id})" style="cursor:pointer"><td style="font-weight:600">${c.name} ${c.tag?pill(c.tag,'pv'):''}</td><td style="font-size:11px;color:var(--gray400)">${c.email}</td><td style="font-size:11px">${c.phone}</td><td class="r">${c.visits}</td><td class="r" style="font-weight:600">${fmt2(c.ca)}</td><td>${c.checkin||'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+
+  } else if(type==='exp03'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Clients en séjour','4','var(--violet)','')}${kpi('PDJ inclus','3','var(--green)','')}${kpi('Sans PDJ','1','var(--amber)','')}${kpi('Régimes spéciaux','2','var(--blue)','')} </div><div class="panel" style="border-left:3px solid var(--red);margin-bottom:10px"><div class="phd" style="background:var(--red-l)"><div class="ptit" style="color:var(--red)">⚠ Alertes allergies</div></div><div class="pbody"><div style="display:flex;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray100)"><span style="font-weight:600">Ch. 201 — Ali Larabi</span>${pill('sans gluten','pr')} ${pill('intolérance lactose','pa')}</div><div style="display:flex;gap:12px;align-items:center;padding:6px 0"><span style="font-weight:600">Ch. 103 — Sophie Dubois</span>${pill('végétarienne','pr')}</div></div></div><div class="panel"><div class="phd"><div class="ptit">Liste petit-déjeuner — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><table class="tbl"><thead><tr><th>Ch.</th><th>Client</th><th>PDJ</th><th>Heure souhaitée</th><th>Allergies / Consignes</th></tr></thead><tbody><tr><td>101</td><td>Pierre Bernard</td><td>${pill('Inclus','pg')}</td><td>07h30</td><td>—</td></tr><tr><td>102</td><td>Linda Chennoun</td><td>${pill('À facturer','pa')}</td><td>—</td><td>—</td></tr><tr style="background:var(--red-l)"><td>103</td><td>Sophie Dubois</td><td>${pill('Inclus','pg')}</td><td>08h00</td><td>${pill('végétarienne','pr')}</td></tr><tr style="background:var(--red-l)"><td>201</td><td>Ali Larabi</td><td>${pill('Inclus','pg')}</td><td>09h00</td><td>${pill('gluten','pr')} ${pill('lactose','pa')}</td></tr></tbody></table></div>`;
+
+  } else if(type==='exp04'){
+    const rows=[['07/04','F-001293','101','BERNARD','06/04','09/04',18.00,'espèces'],['07/04','F-001330','103','DUBOIS','07/04','10/04',54.00,'CB'],['07/04','F-001352','201','LARABI','06/04','12/04',108.00,'CB']];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('PDJ pré-facturés','3','var(--violet)',cmpBadge('8',true))}${kpi('Total','180,00€','var(--green)','')}${kpi('Prix moyen','60,00€','#3b82f6','')}</div><div class="panel"><div class="phd"><div class="ptit">Petit-déjeuner pré-facturés — Avril 2026</div><div class="pmeta">18€/PDJ</div></div><table class="tbl"><thead><tr><th>Date</th><th>N° facture</th><th>Ch.</th><th>Client</th><th>Arrivée</th><th>Départ</th><th class="r">Montant</th><th>Mode</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td style="font-family:monospace;font-size:10px">${r[1]}</td><td>${r[2]}</td><td style="font-weight:600">${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td class="r">${fmt2(r[6])}</td><td>${r[7]}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td colspan="6">Total</td><td class="r">180,00€</td><td></td></tr></tbody></table></div>`;
+
+  } else if(type==='exp05'){
+    const arrList=reservations.filter(r=>r.checkin===TODAY&&!['Annulee','checked_out'].includes(r.status));
+    const depList=reservations.filter(r=>r.checkout===TODAY&&r.status==='checked_in');
+    const stayList=reservations.filter(r=>{if(['Annulee','checked_out'].includes(r.status))return false;return r.checkin<TODAY&&r.checkout>TODAY;});
+    const todayLabel=new Date(TODAY).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    const mkCard=(list,label)=>list.length?list.map(r=>{const c=clientById(r.clientId);return`<div style="padding:8px 0;border-bottom:1px solid var(--gray100)"><div style="font-weight:600">${c?.name||'—'}</div><div style="color:var(--gray400);font-size:11px">Ch. ${r.room} · ${r.canal} · ${r.nights} nuit${r.nights>1?'s':''}</div></div>`;}).join(''):`<div style="text-align:center;padding:20px;color:var(--gray400);font-size:12px">Aucun ${label.toLowerCase()} aujourd'hui</div>`;
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Arrivées',arrList.length,'var(--green)','')}${kpi('Départs',depList.length,'var(--amber)','')}${kpi('En séjour',stayList.length,'var(--blue)','')}${kpi('Demain (prévision)',rooms.length?Math.round((stayList.length)/rooms.length*100)+'%':'0%','var(--violet)','')}</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit" style="color:var(--green)">🟢 Arrivées (${arrList.length})</div><div class="pmeta">${todayLabel}</div></div><div class="pbody" style="font-size:12px">${mkCard(arrList,'Arrivées')}</div></div><div class="panel"><div class="phd"><div class="ptit" style="color:var(--amber)">🟡 Départs (${depList.length})</div></div><div class="pbody" style="font-size:12px">${mkCard(depList,'Départs')}</div></div><div class="panel"><div class="phd"><div class="ptit" style="color:var(--blue)">🔵 En séjour (${stayList.length})</div></div><div class="pbody" style="font-size:12px">${mkCard(stayList,'Séjours')}</div></div></div>`;
+
+  } else if(type==='exp06'){
+    const todayStr=pFrom;
+    const dateLabel=new Date(todayStr).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    const depResas=reservations.filter(r=>r.checkout===todayStr&&r.status==='checked_in');
+    const recouches=reservations.filter(r=>r.checkin<todayStr&&r.checkout>todayStr&&r.status==='checked_in');
+    const libres=rooms.filter(r=>{const occ=reservations.find(res=>res.room===r.num&&res.status==='checked_in'&&res.checkin<=todayStr&&res.checkout>todayStr);return !occ;});
+    const mkPrio=(r,priorite)=>{const c=clientById(r.clientId);const bg=priorite==='P1'?'var(--red-l)':priorite==='P2'?'var(--amber-l)':'';return`<tr style="${bg?`background:${bg}`:''}"><td><b>${r.room}</b></td><td style="text-transform:capitalize">${rooms.find(rm=>rm.num===r.room)?.type||'—'}</td><td>${rooms.find(rm=>rm.num===r.room)?.floor||1}</td><td>${pill(`${priorite} — ${priorite==='P1'?'Départ':priorite==='P2'?'Recouche':'Libre'}`,priorite==='P1'?'pr':priorite==='P2'?'pa':'pp')}</td><td>${c?c.name.split(' ').map((w,i)=>i===0?w:w[0]+'.').join(' '):'—'}</td><td>${priorite==='P1'?'11:00':priorite==='P2'?'14:00':'—'}</td><td>${pill(priorite==='P1'?'À libérer':priorite==='P2'?'En attente':'Propre',priorite==='P1'?'pa':priorite==='P2'?'pp':'pg')}</td></tr>`;};
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Départs (P1)',depResas.length,'var(--red)','')}${kpi('Recouches (P2)',recouches.length,'var(--amber)','')}${kpi('Libres (P3)',libres.length,'var(--gray400)','')}${kpi('Total chambres',rooms.length,'var(--blue)','')} </div><div class="panel"><div class="phd"><div class="ptit">Feuille gouvernante — ${dateLabel}</div><div class="pmeta">${rooms.length} chambres</div></div><table class="tbl"><thead><tr><th>Ch.</th><th>Type</th><th>Étage</th><th>Priorité</th><th>Client</th><th>Heure départ</th><th>Statut</th></tr></thead><tbody>${depResas.map(r=>mkPrio(r,'P1')).join('')}${recouches.map(r=>mkPrio(r,'P2')).join('')}${libres.map(rm=>`<tr><td><b>${rm.num}</b></td><td style="text-transform:capitalize">${rm.type}</td><td>${rm.floor}</td><td>${pill('P3 — Libre','pp')}</td><td>—</td><td>—</td><td>${pill('Propre','pg')}</td></tr>`).join('')}${depResas.length+recouches.length+libres.length===0?`<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--gray400)">Aucune chambre à traiter</td></tr>`:''}</tbody></table></div>`;
+
+  } else if(type==='exp07'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Arrivées à attribuer','2','var(--violet)','')}${kpi('Attribuées','2','var(--green)','')}${kpi('Non attribuées','0','var(--gray400)','')}${kpi('Chambres disponibles','2','var(--blue)','')} </div><div class="panel"><div class="phd"><div class="ptit">Suggestions d'attribution — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><table class="tbl"><thead><tr><th>Client</th><th>Chambre suggérée</th><th>Type</th><th>Confiance</th><th>Action</th></tr></thead><tbody><tr><td style="font-weight:600">Sophie Dubois</td><td style="color:var(--violet);font-weight:700">103</td><td>Single</td><td>${pill('Haute','pg')}</td><td><button class="btn btn-v btn-sm">Attribuer</button></td></tr><tr><td style="font-weight:600">Linda Chennoun</td><td style="color:var(--violet);font-weight:700">102</td><td>Double</td><td>${pill('Haute','pg')}</td><td><button class="btn btn-v btn-sm">Attribuer</button></td></tr></tbody></table></div>`;
+
+  } else if(type==='exp08'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Groupes actifs','2','var(--violet)','')}${kpi('Chambres allouées','20','var(--blue)','')}${kpi('Taux remplissage','66,7%','var(--green)',cmpBadge('5',true))}${kpi('CA groupes','14 000€','var(--amber)','')} </div>${groups.map(g=>`<div class="panel"><div class="phd"><div><div class="ptit">${g.name}</div><div style="font-size:11px;color:var(--gray400)">${g.contact} · ${g.rooms} chambres · ${g.arrival} → ${g.departure}</div></div><div style="display:flex;gap:8px;align-items:center">${pill(g.status==='confirmed'?'Confirmé':'Tentative',g.status==='confirmed'?'pg':'pa')}<span style="font-weight:700;font-size:14px">${fmt2(g.amount)}</span></div></div><div class="pbody"><div style="font-size:12px;font-weight:600;color:var(--gray600);margin-bottom:8px">Participants (${g.participants.length})</div><div style="display:flex;flex-wrap:wrap;gap:5px">${g.participants.map(p=>`<span class="pill pv">${p}</span>`).join('')}</div>${g.notes?`<div style="margin-top:10px;padding:8px 12px;background:var(--amber-l);border-radius:6px;font-size:11px;color:var(--amber)">📋 ${g.notes}</div>`:''}</div></div>`).join('')}`;
+
+  } else if(type==='exp09'){
+    const noShows=reservations.filter(r=>r.status==='no_show'&&r.checkin>=pFrom&&r.checkin<=pTo);
+    const revPerdu=noShows.reduce((s,r)=>s+(r.montant||0),0);
+    const totalExpected=reservations.filter(r=>r.checkin>=pFrom&&r.checkin<=pTo&&!['Annulee'].includes(r.status)).length;
+    const taux=totalExpected>0?Math.round(noShows.length/totalExpected*100):0;
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('No-shows',noShows.length,'var(--gray400)','')}${kpi('Revenu perdu',fmt2(revPerdu),'var(--red)','')}${kpi('Taux no-show',taux+'%',taux===0?'var(--green)':'var(--red)','')} </div><div class="panel">${noShows.length?`<div class="phd"><div class="ptit" style="color:var(--red)">⚠ No-shows — ${getPeriodLabel()}</div></div><table class="tbl"><thead><tr><th>Réservation</th><th>Client</th><th>Chambre</th><th>Date prévue</th><th class="r">Montant</th><th>Canal</th></tr></thead><tbody>${noShows.map(r=>{const c=clientById(r.clientId);return`<tr><td style="font-family:monospace;font-size:10px">${r.id}</td><td style="font-weight:600">${c?.name||'—'}</td><td>${r.room}</td><td>${r.checkin?new Date(r.checkin).toLocaleDateString('fr-FR'):r.dates}</td><td class="r">${fmt2(r.montant)}</td><td>${pill(r.canal,'pp')}</td></tr>`;}).join('')}</tbody></table>`:`<div class="pbody" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-weight:600;color:var(--gray900)">Aucun no-show sur cette période</div><div style="font-size:12px;color:var(--gray400);margin-top:4px">Tous les clients attendus sont arrivés</div></div>`}</div>`;
+
+  } else if(type==='exp10'){
+    const depDuJour=reservations.filter(r=>r.checkout===pFrom&&r.status==='checked_in');
+    const depEffectues=reservations.filter(r=>r.checkout===pFrom&&r.status==='checked_out');
+    const now=new Date(); const heuresAvant=Math.max(0,11-now.getHours());
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Départs du jour',depDuJour.length+depEffectues.length,'var(--amber)','')}${kpi('Effectués',depEffectues.length,'var(--green)','')}${kpi('Restants',depDuJour.length,'var(--red)','')} </div>${depDuJour.length>0?`<div style="padding:10px 16px;background:var(--amber-l);border-radius:8px;font-size:12px;display:flex;justify-content:space-between;align-items:center"><span>⏰ Heure limite de départ : <strong>11:00</strong></span><span style="color:var(--amber);font-weight:600">${heuresAvant>0?`Plus que ${heuresAvant}h avant la limite`:'Heure dépassée'}</span></div>`:''}<div class="panel">${depDuJour.length?`<div class="phd"><div class="ptit" style="color:var(--red)">⚠ Départs restants — clé non rendue</div></div><table class="tbl"><thead><tr><th>Chambre</th><th>Client</th><th>Téléphone</th><th>Canal</th><th>Action</th></tr></thead><tbody>${depDuJour.map(r=>{const c=clientById(r.clientId);return`<tr style="background:var(--red-l)"><td><b>${r.room}</b></td><td style="font-weight:600">${c?.name||'—'}</td><td style="font-size:11px">${c?.phone||'—'}</td><td>${pill(r.canal,'pp')}</td><td><button class="btn btn-sm" style="background:var(--amber);color:#fff">Check-out</button></td></tr>`;}).join('')}</tbody></table>`:`<div class="pbody" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">✅</div><div style="font-weight:600">Tous les départs ont été effectués</div></div>`}</div>`;
+
+  } else if(type==='exp11'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Occupation','4 clients','var(--violet)','')}${kpi('Petit-déjeuner','3 couverts','var(--blue)','')}${kpi('Déjeuner (est.)','2 couverts','var(--green)','')}${kpi('Dîner (est.)','3 couverts','var(--amber)','')} </div><div class="panel"><div class="phd"><div class="ptit">Recommandation cuisine — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><div class="pbody" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:12px"><div style="padding:12px;background:var(--blue-l);border-radius:8px"><div style="font-weight:600;color:var(--blue)">☕ Petit-déjeuner</div><div style="font-size:20px;font-weight:800;margin-top:4px">3 couverts</div><div style="color:var(--gray400)">+10% stock sécurité : 4 couverts</div></div><div style="padding:12px;background:var(--green-l);border-radius:8px"><div style="font-weight:600;color:var(--green)">🍽 Déjeuner</div><div style="font-size:20px;font-weight:800;margin-top:4px">2 couverts</div><div style="color:var(--gray400)">40% taux de consommation</div></div><div style="padding:12px;background:var(--amber-l);border-radius:8px"><div style="font-weight:600;color:var(--amber)">🌙 Dîner</div><div style="font-size:20px;font-weight:800;margin-top:4px">3 couverts</div><div style="color:var(--gray400)">60% taux de consommation</div></div></div><div style="margin-top:12px;padding:10px 14px;background:var(--violet-light);border-radius:8px;font-size:12px;color:var(--violet)">💡 Revenu PDJ estimé : <b>3 × 18€ = 54€</b></div></div>`;
+
+  } else if(type==='exp13'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('CA F&B total','0,00€','var(--violet)','')}${kpi('Petit-déjeuner','0,00€','var(--blue)','')}${kpi('Restaurant','0,00€','var(--green)','')}${kpi('Bar','0,00€','var(--amber)','')} </div><div class="panel"><div class="pbody" style="text-align:center;padding:32px;color:var(--gray400);font-size:12px">Aucune consommation F&B enregistrée pour la période sélectionnée</div></div>`;
+
+  // ── STA ──────────────────────────────────────────────────
+  } else if(type==='sta01'){
+    const data=[24.4,42.2,66.7,55.6,66.7,82.2,86.7,66.7,62.2,71.1,64.4,51.1,55.6,60,48.9,37.8,75.6,93.3,73.3,68.9,75.6,64.4,95.6,100,100,71.1,55.6,73.3,57.8,80,100];
+    area.innerHTML=header+(compareEnabled?`<div class="cmp-banner"><div>📊 TO% : <b>+2.5%</b> vs N-1 (66,1%)</div><div>💰 ADR : <b>+5.1%</b> vs N-1 (211,8€)</div><div>📈 RevPAR : <b>+3.8%</b> vs N-1 (147,1€)</div></div>`:'')+`<div class="kgrid" style="grid-template-columns:repeat(6,minmax(0,1fr))">${kpi('TO% moyen','68,6%','var(--violet)',cmpBadge('2.5',true))}${kpi('CA TTC','219 681€','var(--green)',cmpBadge('8.2',true))}${kpi('ADR','222,57€','#3b82f6',cmpBadge('5.1',true))}${kpi('RevPAR','152,67€','#f59e0b',cmpBadge('3.8',true))}${kpi('Nuitées','1 488','var(--amber)','')}${kpi('Durée moy.','2,3 nuits','var(--gray400)','')} </div><div class="panel" id="rp-panel"><div class="phd"><div class="ptit">Taux d'occupation quotidien — Mars 2026</div></div><div style="padding:16px;height:250px"><canvas id="rChart"></canvas></div></div>`;
+    setTimeout(()=>{
+      const ctx=document.getElementById('rChart');
+      if(!ctx) return;
+      if(chartInst) chartInst.destroy();
+      const labels=Array.from({length:31},(_,i)=>`${i+1}/03`);
+      chartInst=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'TO%',data,backgroundColor:data.map(v=>v>=80?'rgba(22,163,74,.7)':v>=60?'rgba(124,58,237,.6)':'rgba(217,119,6,.5)'),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}});
+    },100);
+
+  } else if(type==='sta02'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Prix min','80€','var(--green)','')}${kpi('Prix max','250€','var(--red)','')}${kpi('Prix moyen','140€','var(--violet)',cmpBadge('5.1',true))}${kpi('Prix médian','120€','#3b82f6','')} </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">Distribution des prix</div></div><div style="height:200px;padding:12px"><canvas id="priceDistChart"></canvas></div></div><div class="panel"><div class="phd"><div class="ptit">Par type de chambre</div></div><table class="tbl"><thead><tr><th>Type</th><th class="r">Prix moy</th><th class="r">Min</th><th class="r">Max</th><th class="r">Resas</th></tr></thead><tbody><tr><td>Single</td><td class="r">80€</td><td class="r">80€</td><td class="r">80€</td><td class="r">1</td></tr><tr><td>Double</td><td class="r">115€</td><td class="r">110€</td><td class="r">120€</td><td class="r">2</td></tr><tr><td>Twin</td><td class="r">130€</td><td class="r">130€</td><td class="r">130€</td><td class="r">1</td></tr><tr><td>Suite</td><td class="r">250€</td><td class="r">250€</td><td class="r">250€</td><td class="r">1</td></tr></tbody></table></div></div>`;
+    setTimeout(()=>{const ctx=document.getElementById('priceDistChart');if(ctx) new Chart(ctx,{type:'bar',data:{labels:['<100€','100-150€','150-200€','200-250€','250€+'],datasets:[{data:[1,2,1,0,1],backgroundColor:'rgba(124,58,237,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});},100);
+
+  } else if(type==='sta03'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Groupes','2','var(--violet)','')}${kpi('Chambres allouées','20','var(--blue)','')}${kpi('Taux global','66,7%','var(--green)',cmpBadge('5',true))}${kpi('CA groupes','14 000€','var(--amber)','')} </div><div class="panel"><div class="phd"><div class="ptit">Allotements — 2026</div></div><table class="tbl"><thead><tr><th>Groupe / Agence</th><th>Période</th><th class="r">Allouées</th><th class="r">Réservées</th><th class="r">Taux</th><th class="r">Revenu</th><th>Statut</th></tr></thead><tbody><tr><td><div style="font-weight:600">Séminaire Tech 2026</div><div style="font-size:10px;color:var(--gray400)">Marc Dupuis</div></td><td style="font-size:11px">15 mai → 17 mai</td><td class="r">8</td><td class="r">8</td><td class="r" style="color:var(--green);font-weight:700">100%</td><td class="r">5 600€</td><td>${pill('Confirmé','pg')}</td></tr><tr><td><div style="font-weight:600">Mariage Dupont-Lebrun</div><div style="font-size:10px;color:var(--gray400)">Claire Dupont</div></td><td style="font-size:11px">20 juin → 22 juin</td><td class="r">12</td><td class="r">4</td><td class="r" style="color:var(--amber);font-weight:700">33%</td><td class="r">8 400€</td><td>${pill('Tentative','pa')}</td></tr></tbody></table></div>`;
+
+  } else if(type==='sta04'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Clients uniques','8','var(--violet)','')}${kpi('Nouveaux','4','var(--green)',cmpBadge('8',true))}${kpi('CLV moyenne','290€','var(--blue)',cmpBadge('12',true))}${kpi('Rétention','50%','var(--amber)','')} </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">Segmentation RFM</div></div><div style="padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px"><div style="padding:10px;background:var(--amber-l);border-radius:8px;text-align:center"><div style="font-size:10px;color:var(--amber);font-weight:600">CHAMPIONS</div><div style="font-size:24px;font-weight:800">1</div></div><div style="padding:10px;background:var(--blue-l);border-radius:8px;text-align:center"><div style="font-size:10px;color:var(--blue);font-weight:600">FIDÈLES</div><div style="font-size:24px;font-weight:800">3</div></div><div style="padding:10px;background:var(--green-l);border-radius:8px;text-align:center"><div style="font-size:10px;color:var(--green);font-weight:600">NOUVEAUX</div><div style="font-size:24px;font-weight:800">4</div></div><div style="padding:10px;background:var(--red-l);border-radius:8px;text-align:center"><div style="font-size:10px;color:var(--red);font-weight:600">À RISQUE</div><div style="font-size:24px;font-weight:800">0</div></div></div></div><div class="panel"><div class="phd"><div class="ptit">Top clients (CLV)</div></div><table class="tbl"><thead><tr><th>#</th><th>Client</th><th class="r">Séjours</th><th class="r">CLV</th></tr></thead><tbody>${clients.sort((a,b)=>b.ca-a.ca).map((c,i)=>`<tr><td style="color:var(--gray400)">${i+1}</td><td style="font-weight:600">${c.name} ${c.tag?pill(c.tag,'pv'):''}</td><td class="r">${c.visits}</td><td class="r" style="font-weight:600;color:var(--violet)">${fmt2(c.ca)}</td></tr>`).join('')}</tbody></table></div></div>`;
+
+  } else if(type==='sta05'){
+    const canalMap={};
+    resasInPeriod.forEach(r=>{const ch=r.canal||'Direct';if(!canalMap[ch])canalMap[ch]={n:0,ca:0,comm:ch==='Booking.com'?15:ch==='Expedia'?18:0};canalMap[ch].n++;canalMap[ch].ca+=(r.montant||0);});
+    const channels=Object.entries(canalMap).sort((a,b)=>b[1].ca-a[1].ca);
+    const totalCA=channels.reduce((s,[,v])=>s+v.ca,0);
+    const totalComm=channels.reduce((s,[,v])=>s+Math.round(v.ca*v.comm/100),0);
+    const commRate=totalCA>0?Math.round(totalComm/totalCA*100*10)/10:0;
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Réservations',resasInPeriod.length,'var(--violet)','')}${kpi('CA total',fmt2(totalCA),'var(--green)',cmpBadge('8',true))}${kpi('Commissions',fmt2(totalComm),'var(--red)','')}${kpi('Taux comm. eff.',commRate+'%','var(--amber)','')} </div><div style="display:grid;grid-template-columns:2fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">Performance par canal</div><div class="pmeta">${getPeriodLabel()}</div></div><table class="tbl"><thead><tr><th>Canal</th><th class="r">Resas</th><th class="r">CA</th><th class="r">Comm.%</th><th class="r">Coût comm.</th><th class="r">Part CA</th></tr></thead><tbody>${channels.map(([ch,v])=>`<tr><td>${pill(ch,ch==='Direct'||ch==='Walk-in'?'pg':'pv')}</td><td class="r">${v.n}</td><td class="r" style="font-weight:600">${fmt2(v.ca)}</td><td class="r" style="color:${v.comm>0?'var(--red)':'var(--green)'}">${v.comm}%</td><td class="r">${v.comm>0?fmt2(Math.round(v.ca*v.comm/100)):'—'}</td><td class="r">${totalCA>0?Math.round(v.ca/totalCA*100)+'%':'—'}</td></tr>`).join('')||`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray400)">Aucune réservation sur cette période</td></tr>`}${channels.length>1?`<tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r">${resasInPeriod.length}</td><td class="r">${fmt2(totalCA)}</td><td class="r">${commRate}%</td><td class="r">${fmt2(totalComm)}</td><td class="r">100%</td></tr>`:''}</tbody></table></div><div class="panel"><div class="phd"><div class="ptit">Répartition CA</div></div><div style="height:200px;padding:16px"><canvas id="canalChart"></canvas></div></div></div>`;
+    setTimeout(()=>{
+      const ctx=document.getElementById('canalChart');
+      if(!ctx||!channels.length) return;
+      new Chart(ctx,{type:'doughnut',data:{labels:channels.map(([k])=>k),datasets:[{data:channels.map(([,v])=>v.ca),backgroundColor:['rgba(124,58,237,.75)','rgba(37,99,235,.75)','rgba(22,163,74,.75)','rgba(217,119,6,.75)','rgba(220,38,38,.75)'],borderWidth:2,borderColor:'#fff',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+    },100);
+
+  } else if(type==='sta06'){
+    const nats=[['FR','France',60,'3b82f6'],['GB','Royaume-Uni',20,'16a34a'],['DE','Allemagne',10,'d97706'],['US','États-Unis',5,'7c3aed'],['OTHER','Autres',5,'9ca3af']];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Nationalités','5','var(--violet)','')}${kpi('Principale','France (60%)','var(--blue)','')}${kpi('Clientèle étrangère','40%','var(--green)',cmpBadge('5',true))} </div><div style="display:grid;grid-template-columns:2fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">Répartition par nationalité — 2026</div></div><table class="tbl"><thead><tr><th>Pays</th><th class="r">Nuitées</th><th class="r">Part</th><th>Tendance</th></tr></thead><tbody>${nats.map(([code,name,pct,col])=>`<tr><td style="font-weight:600">🏳 ${name}</td><td class="r">${Math.round(pct*14.88)}</td><td class="r"><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end"><div style="width:60px;height:6px;background:var(--gray100);border-radius:3px"><div style="width:${pct}%;height:6px;background:#${col};border-radius:3px"></div></div><span style="font-weight:600">${pct}%</span></div></td><td>${pill('stable','pp')}</td></tr>`).join('')}</tbody></table></div><div class="panel"><div class="phd"><div class="ptit">Répartition</div></div><div style="height:200px;padding:16px"><canvas id="natChart"></canvas></div></div></div>`;
+    setTimeout(()=>{
+      const ctx=document.getElementById('natChart');
+      if(!ctx) return;
+      new Chart(ctx,{type:'doughnut',data:{labels:nats.map(n=>n[1]),datasets:[{data:nats.map(n=>n[2]),backgroundColor:['rgba(59,130,246,.75)','rgba(22,163,74,.75)','rgba(217,119,6,.75)','rgba(124,58,237,.75)','rgba(156,163,175,.75)'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}});
+    },100);
+
+  } else if(type==='sta07'){
+    const months=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const nightsData=[98,112,1488,245,0,0,0,0,0,0,0,0];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Capacité','5 chambres · 10 lits','var(--violet)','')}${kpi('Nuitées annuelles','1 943','var(--green)',cmpBadge('8',true))}${kpi('Nuitées françaises','65%','var(--blue)','')}${kpi('Nuitées étrangères','35%','var(--amber)','')} </div><div class="panel"><div class="phd"><div class="ptit">Déclaration INSEE — Nuitées par mois 2026</div><div class="pmeta"><button class="btn btn-g btn-sm">⬇ Export CSV</button></div></div><table class="tbl"><thead><tr><th>Mois</th><th class="r">Nuitées tot.</th><th class="r">Nuitées FR</th><th class="r">Nuitées étrang.</th></tr></thead><tbody>${months.map((m,i)=>`<tr><td>${m}</td><td class="r">${nightsData[i]}</td><td class="r">${Math.round(nightsData[i]*0.65)}</td><td class="r">${Math.round(nightsData[i]*0.35)}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r">1 943</td><td class="r">1 263</td><td class="r">680</td></tr></tbody></table></div>`;
+
+  } else if(type==='sta08'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('TO% moyen','68,6%','var(--violet)','')}${kpi('Turnover moy.','4,2 /mois','var(--blue)','')}${kpi('Chambre la + demandée','201 (Suite)','var(--green)','')}${kpi('Chambre la - demandée','202 (Twin)','var(--red)','')} </div><div class="panel"><div class="phd"><div class="ptit">Rotation des chambres — Mars 2026</div></div><table class="tbl"><thead><tr><th>Chambre</th><th>Type</th><th class="r">Resas</th><th class="r">Nuitées</th><th class="r">Séjour moy.</th><th>Occupation</th><th class="r">Turnover/mois</th></tr></thead><tbody>${rooms.map(r=>{const turn=(Math.random()*5+2).toFixed(1);const occ=Math.floor(70+Math.random()*30);return`<tr><td><b>${r.num}</b></td><td>${r.type}</td><td class="r">${Math.floor(Math.random()*8+2)}</td><td class="r">${Math.floor(Math.random()*15+5)}</td><td class="r">2,3 nuits</td><td><div style="display:flex;align-items:center;gap:6px"><div style="width:60px;height:6px;background:var(--gray100);border-radius:3px"><div style="width:${occ}%;height:6px;background:var(--violet);border-radius:3px"></div></div><span style="font-size:10px;color:var(--gray400)">${occ}%</span></div></td><td class="r" style="color:var(--green);font-weight:600">${turn}</td></tr>`;}).join('')}</tbody></table></div>`;
+
+  // ── FIN ─────────────────────────────────────────────────
+  } else if(type==='fin01'){
+    const vatRate=10;
+    const totalTTC=resasInPeriod.reduce((s,r)=>s+(r.montant||0),0);
+    const totalHT=Math.round(totalTTC/(1+vatRate/100)*100)/100;
+    const totalVAT=Math.round((totalTTC-totalHT)*100)/100;
+    const rows=resasInPeriod.map(r=>{const c=clientById(r.clientId);const ttc=r.montant||0;const ht=Math.round(ttc/(1+vatRate/100)*100)/100;const vat=Math.round((ttc-ht)*100)/100;return`<tr><td style="font-family:monospace;font-size:10px">${r.id}</td><td style="font-weight:600">${c?.name||'—'}</td><td>${r.isDummyRoom?`<span style="color:var(--violet);font-size:9px">🔷 Fictive</span>`:r.room}</td><td>${pill(r.canal||'Direct','pp')}</td><td class="r">${r.nights||'—'}</td><td class="r">${fmt2(ht)}</td><td class="r" style="color:var(--amber)">${fmt2(vat)}</td><td class="r" style="font-weight:700">${fmt2(ttc)}</td></tr>`;});
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('CA HT',fmt2(totalHT),'var(--violet)',cmpBadge('8.2',true))}${kpi('TVA 10%',fmt2(totalVAT),'var(--amber)','')}${kpi('CA TTC',fmt2(totalTTC),'var(--green)','')}${kpi('Réservations',resasInPeriod.length,'var(--blue)','')} </div><div class="panel"><div class="phd"><div class="ptit">Journal des prestations — ${getPeriodLabel()}</div><div class="pmeta">Réf. FIN-01</div></div><table class="tbl"><thead><tr><th>Réservation</th><th>Client</th><th>Chambre</th><th>Canal</th><th class="r">Nuits</th><th class="r">Montant HT</th><th class="r">TVA</th><th class="r">TTC</th></tr></thead><tbody id="tbody-fin01">${rows.join('')}${resasInPeriod.length>0?`<tr style="font-weight:700;background:var(--gray50)"><td colspan="5">Total</td><td class="r">${fmt2(totalHT)}</td><td class="r" style="color:var(--amber)">${fmt2(totalVAT)}</td><td class="r" style="color:var(--green)">${fmt2(totalTTC)}</td></tr>`:''}</tbody></table><div id="pag-fin01" class="pagination"></div></div>`;
+    if(rows.length>20) paginateTable('fin01', rows);
+
+  } else if(type==='fin02'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Transactions','7','var(--violet)','')}${kpi('Total encaissé','4 156,00€','var(--green)','')}${kpi('Panier moyen','593,71€','var(--blue)','')}${kpi('Règlement principal','CB (71%)','var(--amber)','')} </div><div class="panel"><div class="phd"><div class="ptit">Journal des règlements — Avril 2026</div><div class="pmeta">Réf. FIN-02</div></div><table class="tbl"><thead><tr><th>Mode</th><th class="r">Transactions</th><th class="r">Montant</th><th class="r">Moyenne</th><th class="r">Part</th></tr></thead><tbody><tr><td>💳 Carte bancaire</td><td class="r">5</td><td class="r" style="font-weight:700">2 952,00€</td><td class="r">590,40€</td><td class="r">71%</td></tr><tr><td>💵 Espèces</td><td class="r">1</td><td class="r" style="font-weight:700">54,00€</td><td class="r">54,00€</td><td class="r">1%</td></tr><tr><td>🏦 Virement</td><td class="r">1</td><td class="r" style="font-weight:700">1 150,00€</td><td class="r">1 150,00€</td><td class="r">28%</td></tr><tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r">7</td><td class="r">4 156,00€</td><td class="r">593,71€</td><td class="r">100%</td></tr></tbody></table></div>`;
+
+  } else if(type==='fin03'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('CA annuel','219 681€','var(--violet)',cmpBadge('8.2',true))}${kpi('Charges totales','120 825€','var(--red)','')}${kpi('Résultat brut','98 856€','var(--green)','')}${kpi('Marge nette','45%','var(--blue)',cmpBadge('3',true))} </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">Compte de résultat — 2026</div></div><table class="tbl"><thead><tr><th>Poste</th><th class="r">Montant</th><th class="r">%</th></tr></thead><tbody><tr style="background:var(--green-l)"><td style="font-weight:600">CA Total TTC</td><td class="r">219 681€</td><td class="r">100%</td></tr><tr><td>Masse salariale</td><td class="r" style="color:var(--red)">-76 888€</td><td class="r">35%</td></tr><tr><td>Énergie & fluides</td><td class="r" style="color:var(--red)">-13 181€</td><td class="r">6%</td></tr><tr><td>Maintenance</td><td class="r" style="color:var(--red)">-8 787€</td><td class="r">4%</td></tr><tr><td>Marketing</td><td class="r" style="color:var(--red)">-10 984€</td><td class="r">5%</td></tr><tr><td>Divers</td><td class="r" style="color:var(--red)">-10 985€</td><td class="r">5%</td></tr><tr style="background:var(--violet-light);font-weight:700"><td>Résultat net</td><td class="r" style="color:var(--violet)">98 856€</td><td class="r">45%</td></tr></tbody></table></div><div class="panel"><div class="phd"><div class="ptit">P&L mensuel 2026</div></div><div style="height:220px;padding:12px"><canvas id="pnlChart"></canvas></div></div></div>`;
+    setTimeout(()=>{const ctx=document.getElementById('pnlChart');if(ctx) new Chart(ctx,{type:'bar',data:{labels:['Jan','Fév','Mar','Avr','Mai'],datasets:[{label:'CA',data:[14200,15800,28900,16800,0],backgroundColor:'rgba(124,58,237,.6)',borderRadius:3},{label:'Résultat',data:[6300,7100,13000,7560,0],backgroundColor:'rgba(22,163,74,.6)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}});},100);
+
+  } else if(type==='fin04'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Encours total','10 580,94€','var(--red)','')}${kpi('0-30 jours','1 875,06€','var(--green)','')}${kpi('31-90 jours','791,70€','var(--amber)','')}${kpi('+90 jours','7 914,18€','var(--red)','')} </div><div class="panel"><div class="phd"><div class="ptit">Balance âgée — au 07/04/2026</div><div class="pmeta">Réf. FIN-04</div></div><table class="tbl"><thead><tr><th>Client / Débiteur</th><th class="r">Montant</th><th class="r">Échéance</th><th class="r">Retard</th><th>Statut</th><th></th></tr></thead><tbody><tr style="background:var(--red-l)"><td style="font-weight:600">ADCYTHERIX</td><td class="r">8 706,06€</td><td class="r">17/03</td><td class="r" style="color:var(--red)">21 jours</td><td>${pill('En retard','pr')}</td><td><button class="btn btn-sm btn-r">Relancer</button></td></tr><tr><td style="font-weight:600">BOOKING.COM</td><td class="r">791,70€</td><td class="r">01/04</td><td class="r" style="color:var(--amber)">6 jours</td><td>${pill('En cours','pa')}</td><td><button class="btn btn-sm btn-r">Relancer</button></td></tr><tr><td style="font-weight:600">CAM NEGOCE</td><td class="r">1 083,18€</td><td class="r">07/04</td><td class="r" style="color:var(--green)">0 jour</td><td>${pill('À venir','pg')}</td><td></td></tr></tbody></table></div>`;
+
+  } else if(type==='fin05'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Facturé','4 154,00€','var(--violet)','')}${kpi('Encaissé','3 070,82€','var(--green)','')}${kpi('Écart','−1 083,18€','var(--red)','')} </div><div style="padding:10px 14px;background:var(--amber-l);border-radius:8px;font-size:12px">⚠ <strong>Déséquilibre détecté</strong> — 1 083,18€ de différence entre facturation et encaissements</div><div class="panel"><div class="phd"><div class="ptit">Réservations avec écart de paiement</div></div><table class="tbl"><thead><tr><th>Client</th><th class="r">Dû</th><th class="r">Payé</th><th class="r">Écart</th><th>Statut</th></tr></thead><tbody><tr><td>Pierre Bernard</td><td class="r">480,00€</td><td class="r">500,00€</td><td class="r" style="color:var(--green)">+20,00€</td><td>${pill('Surpayé','pb')}</td></tr><tr style="background:var(--amber-l)"><td>Ali Larabi</td><td class="r">1 500,00€</td><td class="r">416,82€</td><td class="r" style="color:var(--red)">−1 083,18€</td><td>${pill('Solde restant','pa')}</td></tr></tbody></table></div>`;
+
+  } else if(type==='fin06'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Solde ouverture','500,00€','var(--gray400)','')}${kpi('Entrées','54,00€','var(--green)','')}${kpi('Sorties','−12,50€','var(--red)','')}${kpi('Solde clôture','541,50€','var(--violet)','')} </div><div class="panel"><div class="phd"><div class="ptit">Mouvements petite caisse — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><table class="tbl"><thead><tr><th>Heure</th><th>Type</th><th>Description</th><th>Justificatif</th><th class="r">Montant</th></tr></thead><tbody><tr><td>07:30</td><td>${pill('Entrée','pg')}</td><td>Paiement PDJ — Linda Chennoun</td><td>F-001294</td><td class="r" style="color:var(--green);font-weight:700">+54,00€</td></tr><tr><td>10:15</td><td>${pill('Sortie','pr')}</td><td>Achat produits accueil</td><td>T-000287</td><td class="r" style="color:var(--red);font-weight:700">−12,50€</td></tr><tr style="font-weight:700;background:var(--gray50)"><td colspan="4">Solde du jour</td><td class="r">+41,50€</td></tr></tbody></table></div>`;
+
+  } else if(type==='fin07'){
+    const recouches=reservations.filter(r=>r.checkin<pFrom&&r.checkout>pFrom&&r.status==='checked_in');
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Recouchants',recouches.length,'var(--violet)',cmpBadge('5',true))}${kpi('Chambres concernées',recouches.length,'var(--blue)','')}${kpi('CA recouches',fmt2(recouches.reduce((s,r)=>s+(r.montant||0),0)),'var(--green)','')} </div><div class="panel"><div class="phd"><div class="ptit">Recouchants — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><table class="tbl"><thead><tr><th>Chambre</th><th>Client</th><th>Arrivée</th><th>Départ prévu</th><th class="r">Nuits restantes</th><th class="r">Montant/nuit</th></tr></thead><tbody>${recouches.map(r=>{const c=clientById(r.clientId);const rm=rooms.find(x=>x.num===r.room);const nRest=Math.max(0,Math.round((new Date(r.checkout)-new Date(pFrom))/(86400000)));return`<tr><td><b>${r.room}</b></td><td style="font-weight:600">${c?.name||'—'}</td><td>${r.checkin?new Date(r.checkin).toLocaleDateString('fr-FR'):r.dates}</td><td>${r.checkout?new Date(r.checkout).toLocaleDateString('fr-FR'):'—'}</td><td class="r">${nRest}</td><td class="r">${fmt2(rm?.price||0)}</td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray400)">Aucun recouchant ce jour</td></tr>`}</tbody></table></div>`;
+
+  } else if(type==='fin08'){
+    const encours=reservations.filter(r=>r.status==='Confirmee').reduce((s,r)=>s+(r.montant||0),0);
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('CA réalisé','12 450,00€','var(--green)',cmpBadge('8',true))}${kpi('CA commandes futures',fmt2(encours),'var(--violet)','')}${kpi('Taux couverture','78%','var(--blue)','')} </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">CA réalisé (séjours terminés)</div></div><table class="tbl"><thead><tr><th>Mois</th><th class="r">Montant</th></tr></thead><tbody><tr><td>Janvier</td><td class="r" style="font-weight:600">2 400,00€</td></tr><tr><td>Février</td><td class="r" style="font-weight:600">3 100,00€</td></tr><tr><td>Mars</td><td class="r" style="font-weight:600">4 800,00€</td></tr><tr><td>Avril (partiel)</td><td class="r" style="font-weight:600">2 150,00€</td></tr><tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r" style="color:var(--green)">12 450,00€</td></tr></tbody></table></div><div class="panel"><div class="phd"><div class="ptit">Réservations futures (carnet commandes)</div></div><table class="tbl"><thead><tr><th>Réservation</th><th>Arrivée</th><th class="r">Montant</th></tr></thead><tbody>${reservations.filter(r=>r.status==='Confirmee').map(r=>`<tr><td>${clientById(r.clientId)?.name||'—'}</td><td>${r.dates.split('–')[0]||r.checkin}</td><td class="r" style="font-weight:600">${fmt2(r.montant)}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td colspan="2">Total</td><td class="r" style="color:var(--blue)">${fmt2(encours)}</td></tr></tbody></table></div></div>`;
+
+  } else if(type==='fin09'){
+    const tva=[['Hébergement','10%',3236.36,323.64,3560.00],['Petit-déjeuner','10%',49.09,4.91,54.00],['Divers','20%',408.33,81.67,490.00]];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('CA HT','3 693,78€','var(--violet)','')}${kpi('TVA collectée','410,22€','var(--amber)',cmpBadge('8',true))}${kpi('TVA déductible','−82,50€','var(--green)','')}${kpi('TVA nette','327,72€','var(--red)','')} </div><div class="panel"><div class="phd"><div class="ptit">Déclaration TVA — CA3 — Avril 2026</div><div class="pmeta">Trimestre 2/2026</div></div><table class="tbl"><thead><tr><th>Prestation</th><th class="r">Taux</th><th class="r">Base HT</th><th class="r">TVA</th><th class="r">TTC</th></tr></thead><tbody>${tva.map(([p,t,ht,vat,ttc])=>`<tr><td>${p}</td><td class="r">${t}</td><td class="r">${fmt2(ht)}</td><td class="r" style="color:var(--amber);font-weight:600">${fmt2(vat)}</td><td class="r" style="font-weight:700">${fmt2(ttc)}</td></tr>`).join('')}<tr style="font-weight:700;background:var(--gray50)"><td>Total</td><td class="r"></td><td class="r">3 693,78€</td><td class="r" style="color:var(--amber)">410,22€</td><td class="r">4 104,00€</td></tr></tbody></table><div style="padding:12px 16px;background:var(--red-l);border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span>TVA nette à reverser :</span><span style="font-weight:700;color:var(--red)">327,72€</span></div></div>`;
+
+  } else if(type==='fin10'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('CA HT','3 693,78€','var(--violet)',cmpBadge('8',true))}${kpi('TVA','410,22€','var(--amber)','')}${kpi('CA TTC','4 104,00€','var(--green)','')} </div><div class="panel"><div class="phd"><div class="ptit">Situation financière — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:0"><div style="padding:16px;border-right:1px solid var(--border)"><div style="font-weight:600;margin-bottom:10px">Opérationnel</div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--gray600)">Taux occupation</span><b>78,9%</b></div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--gray600)">Chambres occupées</span><b>4/5</b></div><div style="display:flex;justify-content:space-between"><span style="color:var(--gray600)">ADR</span><b>166,50€</b></div></div><div style="padding:16px"><div style="font-weight:600;margin-bottom:10px">Règlements</div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--gray600)">CB</span><b>2 952,00€</b></div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="color:var(--gray600)">Espèces</span><b>54,00€</b></div><div style="display:flex;justify-content:space-between"><span style="color:var(--gray600)">Virement</span><b>64,82€</b></div></div></div></div>`;
+
+  } else if(type==='fin11'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Solde caisse théorique','541,50€','var(--green)','')}${kpi('Solde déclaré','541,50€','var(--green)','')}${kpi('Écart','0,00€','var(--gray400)','')}${kpi('Statut','✅ Équilibrée','var(--green)','')} </div><div class="panel"><div class="phd"><div class="ptit">État de caisse — ${new Date(pFrom).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'})}</div></div><table class="tbl"><thead><tr><th>Heure</th><th>Description</th><th>N° facture</th><th class="r">Montant</th></tr></thead><tbody><tr><td>07:30</td><td>PDJ — Linda Chennoun</td><td>F-001294</td><td class="r" style="color:var(--green);font-weight:600">+54,00€</td></tr><tr><td>10:15</td><td>Achat produits accueil</td><td>T-000287</td><td class="r" style="color:var(--red);font-weight:600">−12,50€</td></tr><tr style="font-weight:700;background:var(--gray50)"><td colspan="3">Total mouvements du jour</td><td class="r">+41,50€</td></tr></tbody></table><div style="padding:12px 16px;background:var(--green-l);border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px"><span>✅ Caisse équilibrée — aucun écart détecté</span><span style="font-weight:700;color:var(--green)">Solde : 541,50€</span></div></div>`;
+
+  // ── CLI ─────────────────────────────────────────────────
+  } else if(type==='cli01'){
+    const rows=[['17/03','603-001293','0702','SCHELLENS','17/03','18/03',481.06,'ADCY01','pv'],['18/03','603-001328','0308','GAVRILYUK','16/03','19/03',1410.00,'ADCY01','pv'],['18/03','603-001330','0705','MULDER','17/03','19/03',4230.00,'ADCY01','pv'],['27/12','512-007506','0002','ALHARBI','27/12','28/12',302.40,'BOOK01','pb'],['14/03','603-001255','0003','THOMPSON','14/03','15/03',249.30,'BOOK01','pb'],['01/03','603-001100','0001','CAM NEGOCE','01/03','04/03',1083.18,'CAM01','pg']];
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Total en-cours','10 580,94€','var(--red)','')}${kpi('ADCYTHERIX','8 706,06€','var(--amber)','')}${kpi('BOOKING.COM','791,70€','var(--violet)','')}${kpi('CAM NEGOCE','1 083,18€','var(--green)','')} </div><div class="panel"><div class="phd"><div class="ptit">En-cours débiteurs — au 07/04/2026</div><div class="pmeta">Réf. 33003</div></div><table class="tbl"><thead><tr><th>Date</th><th>N° folio</th><th>Ch.</th><th>Nom</th><th>Arrivée</th><th>Départ</th><th class="r">Montant</th><th>Débiteur</th></tr></thead><tbody><tr style="background:var(--violet-light)"><td colspan="8" style="padding:7px 12px;font-size:11px;font-weight:600;color:var(--violet)">ADCYTHERIX — 3 réservations</td></tr>${rows.filter(r=>r[7]==='ADCY01').map(r=>`<tr><td>${r[0]}</td><td style="font-family:monospace;font-size:10px;color:var(--gray400)">${r[1]}</td><td>${r[2]}</td><td style="font-weight:600">${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td class="r" style="font-weight:600">${fmt2(r[6])}</td><td>${pill(r[7],r[8])}</td></tr>`).join('')}<tr style="background:var(--gray50);font-weight:700"><td colspan="6">Sous-total ADCYTHERIX</td><td class="r">8 706,06€</td><td></td></tr><tr style="background:#dbeafe"><td colspan="8" style="padding:7px 12px;font-size:11px;font-weight:600;color:#1e3a8a">BOOKING.COM — 2 réservations</td></tr>${rows.filter(r=>r[7]==='BOOK01').map(r=>`<tr><td>${r[0]}</td><td style="font-family:monospace;font-size:10px;color:var(--gray400)">${r[1]}</td><td>${r[2]}</td><td style="font-weight:600">${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td class="r" style="font-weight:600">${fmt2(r[6])}</td><td>${pill(r[7],r[8])}</td></tr>`).join('')}<tr style="background:var(--gray50);font-weight:700"><td colspan="6">Sous-total BOOKING.COM</td><td class="r">791,70€</td><td></td></tr><tr style="background:var(--green-l)"><td colspan="8" style="padding:7px 12px;font-size:11px;font-weight:600;color:var(--green)">CAM NEGOCE — 1 réservation</td></tr>${rows.filter(r=>r[7]==='CAM01').map(r=>`<tr><td>${r[0]}</td><td style="font-family:monospace;font-size:10px;color:var(--gray400)">${r[1]}</td><td>${r[2]}</td><td style="font-weight:600">${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td class="r" style="font-weight:600">${fmt2(r[6])}</td><td>${pill(r[7],r[8])}</td></tr>`).join('')}<tr style="background:var(--red-l);font-weight:700"><td colspan="6">TOTAL GÉNÉRAL</td><td class="r" style="color:var(--red)">10 580,94€</td><td></td></tr></tbody></table></div>`;
+
+  } else if(type==='cli02'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Réservations avec acompte','4','var(--violet)','')}${kpi('Acomptes collectés','720,00€','var(--green)','')}${kpi('Solde restant','2 370,00€','var(--amber)','')}${kpi('Acompte moyen','180,00€','var(--blue)','')} </div><div class="panel"><div class="phd"><div class="ptit">Arrhes & acomptes versés</div></div><table class="tbl"><thead><tr><th>Client</th><th>Séjour</th><th class="r">Montant total</th><th class="r">Acompte versé</th><th class="r">%</th><th class="r">Solde dû</th></tr></thead><tbody>${reservations.filter(r=>r.status==='Confirmee').map(r=>{const c=clientById(r.clientId);const acompte=r.montant*0.3;return`<tr><td style="font-weight:600">${c?.name||'—'}</td><td style="font-size:11px;color:var(--gray400)">${r.dates||r.checkin}</td><td class="r">${fmt2(r.montant)}</td><td class="r" style="color:var(--green);font-weight:600">${fmt2(acompte)}</td><td class="r">30%</td><td class="r" style="color:var(--amber);font-weight:600">${fmt2(r.montant-acompte)}</td></tr>`;}).join('')||`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--gray400)">Aucun acompte enregistré</td></tr>`}</tbody></table></div>`;
+
+  } else if(type==='cli03'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Clients avec crédit','1','var(--violet)','')}${kpi('Crédit total émis','20,00€','var(--blue)','')}${kpi('Crédit restant','20,00€','var(--amber)','')} </div><div class="panel"><div class="phd"><div class="ptit">Avoirs & crédits clients</div></div><table class="tbl"><thead><tr><th>Client</th><th>Email</th><th class="r">Crédit total</th><th class="r">Utilisé</th><th class="r">Restant</th></tr></thead><tbody><tr><td style="font-weight:600">Pierre Bernard</td><td style="font-size:11px;color:var(--gray400)">pierre.bernard@orange.fr</td><td class="r">20,00€</td><td class="r">0,00€</td><td class="r" style="color:var(--violet);font-weight:700">20,00€</td></tr></tbody></table><div class="pbody" style="text-align:center;padding:16px;color:var(--gray400);font-size:12px;border-top:1px solid var(--border)">Ce crédit correspond au solde du séjour RES-001 (trop-perçu de 20€)</div></div>`;
+
+  } else if(type==='cli04'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">${kpi('Encours N-1','8 200€','var(--amber)','')}${kpi('Recouvré N-1','7 100€','var(--green)','')}${kpi('Taux recouvrement','86,6%','var(--violet)',cmpBadge('3',true))} </div><div class="panel"><div class="phd"><div class="ptit">États antérieurs — Historique 2025</div></div><table class="tbl"><thead><tr><th>Trimestre</th><th>Année</th><th class="r">Encours</th><th class="r">Recouvré</th><th class="r">Taux</th></tr></thead><tbody><tr><td>T1</td><td>2025</td><td class="r">1 800€</td><td class="r" style="color:var(--green)">1 800€</td><td class="r" style="color:var(--green);font-weight:700">100%</td></tr><tr><td>T2</td><td>2025</td><td class="r">2 100€</td><td class="r" style="color:var(--green)">1 900€</td><td class="r" style="color:var(--green);font-weight:700">90,5%</td></tr><tr><td>T3</td><td>2025</td><td class="r">2 400€</td><td class="r" style="color:var(--amber)">1 900€</td><td class="r" style="color:var(--amber);font-weight:700">79,2%</td></tr><tr><td>T4</td><td>2025</td><td class="r">1 900€</td><td class="r" style="color:var(--green)">1 500€</td><td class="r" style="color:var(--amber);font-weight:700">78,9%</td></tr><tr style="font-weight:700;background:var(--gray50)"><td colspan="2">Total 2025</td><td class="r">8 200€</td><td class="r" style="color:var(--green)">7 100€</td><td class="r" style="color:var(--green)">86,6%</td></tr></tbody></table></div>`;
+
+  } else if(type==='cli05'){
+    area.innerHTML=header+`<div class="kgrid" style="grid-template-columns:repeat(4,1fr)">${kpi('Clients total','8','var(--violet)','')}${kpi('CLV moyenne','290€','var(--green)',cmpBadge('12',true))}${kpi('Champions','1','var(--amber)','')}${kpi('Taux fidélisation','50%','var(--blue)',cmpBadge('5',true))} </div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="panel"><div class="phd"><div class="ptit">Top clients par valeur vie (CLV)</div></div><table class="tbl"><thead><tr><th>#</th><th>Client</th><th>Segment</th><th class="r">Séjours</th><th class="r">CLV</th></tr></thead><tbody>${[...clients].sort((a,b)=>b.ca-a.ca).map((c,i)=>`<tr><td style="color:var(--gray400);font-weight:600">${i===0?'🥇':i===1?'🥈':i===2?'🥉':`${i+1}`}</td><td style="font-weight:600">${c.name}</td><td>${c.tag?pill(c.tag,'pv'):`<span style="color:var(--gray400);font-size:10px">—</span>`}</td><td class="r">${c.visits}</td><td class="r" style="font-weight:700;color:var(--violet)">${fmt2(c.ca)}</td></tr>`).join('')}</tbody></table></div><div class="panel"><div class="phd"><div class="ptit">Analyse RFM — Scoring</div></div><div class="pbody">${[...clients].sort((a,b)=>b.ca-a.ca).slice(0,5).map(c=>{const rfm=Math.min(5,Math.floor(c.ca/800));return`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray100)"><div style="font-size:12px;font-weight:600;min-width:120px">${c.name}</div><div style="flex:1;display:flex;gap:3px">${Array.from({length:5},(_,i)=>`<div style="width:14px;height:14px;border-radius:3px;background:${i<rfm?'var(--violet)':'var(--gray200)'}"></div>`).join('')}</div><span style="font-size:10px;color:var(--gray400)">${rfm}/5</span></div>`;}).join('')}</div></div></div>`;
+
+  } else {
+    area.innerHTML=header+`<div class="panel"><div class="pbody" style="text-align:center;padding:40px;color:var(--gray400)">📊 Rapport <strong>${type.toUpperCase()}</strong> — sélectionnez un rapport dans les onglets ci-dessus.</div></div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// EXP-02 SEARCH
+// ════════════════════════════════════════════════════════════
+function exp02Search(){
+  const q=(document.getElementById('exp02q')?.value||'').toLowerCase();
+  const pill=(txt,cls)=>`<span class="pill ${cls}">${txt}</span>`;
+  const filtered=clients.filter(c=>c.name.toLowerCase().includes(q)||c.email.toLowerCase().includes(q)||(c.phone||'').includes(q));
+  document.getElementById('exp02res').innerHTML=`<table class="tbl"><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th class="r">Séjours</th><th class="r">CA Total</th></tr></thead><tbody>${filtered.map(c=>`<tr onclick="openClientModal(${c.id})" style="cursor:pointer"><td style="font-weight:600">${c.name} ${c.tag?pill(c.tag,'pv'):''}</td><td style="font-size:11px;color:var(--gray400)">${c.email}</td><td style="font-size:11px">${c.phone}</td><td class="r">${c.visits}</td><td class="r" style="font-weight:600">${fmt2(c.ca)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// TAXE DE SÉJOUR
+// ════════════════════════════════════════════════════════════
+const TAXE_BAREME_DEFAULT = {0:{bs:0.20,hs:0.30},1:{bs:0.50,hs:0.80},2:{bs:1.00,hs:1.50},3:{bs:1.50,hs:2.25},4:{bs:2.30,hs:3.00},5:{bs:3.00,hs:4.00}};
+window.TAXE_CFG = null;
+
+function isHauteSaison(dateStr, cfg){
+  const mmdd=dateStr.slice(5);
+  const start=cfg.hsDebut||'06-01', end=cfg.hsFin||'08-31';
+  return mmdd>=start && mmdd<=end;
+}
+
+function openTaxeConfig(){
+  const cfg=window.TAXE_CFG||{etablissement:'Hôtel Flowtym',commune:'Paris',codeINSEE:'75056',adresse:'12 rue de la Paix, 75001 Paris',etoiles:3,hsDebut:'06-01',hsFin:'08-31',plafond:0,exonerationsMineurs:true,exonerationsHandicap:true,exonerationsSaisonniers:false,bareme:{...TAXE_BAREME_DEFAULT}};
+  const b=cfg.bareme[cfg.etoiles]||{bs:1.50,hs:2.25};
+  openSM('⚙️ Paramètres — Taxe de séjour',`
+    <div style="padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.7px">Établissement</div></div>
+    <div class="field"><label>Nom de l'établissement</label><input class="finput" id="tx-nom" value="${cfg.etablissement}"></div>
+    <div class="field"><label>Adresse complète</label><input class="finput" id="tx-adr" value="${cfg.adresse}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="field"><label>Commune</label><input class="finput" id="tx-commune" value="${cfg.commune}"></div><div class="field"><label>Code INSEE</label><input class="finput" id="tx-insee" value="${cfg.codeINSEE}"></div></div>
+    <div class="field"><label>Nombre d'étoiles</label><select class="fsel2" id="tx-etoiles" onchange="txUpdateBareme()">${[0,1,2,3,4,5].map(n=>`<option value="${n}" ${n===cfg.etoiles?'selected':''}>${n===0?'Non classé':n+' étoile'+(n>1?'s':'')}</option>`).join('')}</select></div>
+    <div style="padding:6px 0 4px;border-bottom:1px solid var(--border);margin:12px 0"><div style="font-size:10px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.7px">Barème & Saisons</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="field"><label>Tarif basse saison (€/nuit)</label><input class="finput" id="tx-bs" type="number" step="0.01" value="${b.bs}"></div><div class="field"><label>Tarif haute saison (€/nuit)</label><input class="finput" id="tx-hs" type="number" step="0.01" value="${b.hs}"></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="field"><label>Début haute saison (MM-JJ)</label><input class="finput" id="tx-hs-debut" value="${cfg.hsDebut}" placeholder="06-01"></div><div class="field"><label>Fin haute saison (MM-JJ)</label><input class="finput" id="tx-hs-fin" value="${cfg.hsFin}" placeholder="08-31"></div></div>
+    <div style="padding:6px 0 4px;border-bottom:1px solid var(--border);margin:12px 0"><div style="font-size:10px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.7px">Exonérations automatiques</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="tx-exo-mineur" ${cfg.exonerationsMineurs?'checked':''}> Mineurs (moins de 18 ans)</label><label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="tx-exo-hand" ${cfg.exonerationsHandicap?'checked':''}> Personnes handicapées et accompagnants</label><label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="tx-exo-sais" ${cfg.exonerationsSaisonniers?'checked':''}> Travailleurs saisonniers</label></div>
+  `,`<button class="btn btn-g" onclick="closeSM()">Annuler</button><button class="btn btn-v" onclick="saveTaxeConfig()">✓ Enregistrer</button>`);
+}
+
+function txUpdateBareme(){
+  const etoiles=parseInt(document.getElementById('tx-etoiles')?.value)||3;
+  const b=TAXE_BAREME_DEFAULT[etoiles]||{bs:1.50,hs:2.25};
+  const bs=document.getElementById('tx-bs'); if(bs) bs.value=b.bs;
+  const hs=document.getElementById('tx-hs'); if(hs) hs.value=b.hs;
+}
+
+function saveTaxeConfig(){
+  const etoiles=parseInt(document.getElementById('tx-etoiles')?.value)||3;
+  window.TAXE_CFG={etablissement:document.getElementById('tx-nom')?.value||'',commune:document.getElementById('tx-commune')?.value||'',codeINSEE:document.getElementById('tx-insee')?.value||'',adresse:document.getElementById('tx-adr')?.value||'',etoiles,hsDebut:document.getElementById('tx-hs-debut')?.value||'06-01',hsFin:document.getElementById('tx-hs-fin')?.value||'08-31',plafond:parseFloat(document.getElementById('tx-plafond')?.value)||0,exonerationsMineurs:document.getElementById('tx-exo-mineur')?.checked,exonerationsHandicap:document.getElementById('tx-exo-hand')?.checked,exonerationsSaisonniers:document.getElementById('tx-exo-sais')?.checked,bareme:{...TAXE_BAREME_DEFAULT,[etoiles]:{bs:parseFloat(document.getElementById('tx-bs')?.value)||1.50,hs:parseFloat(document.getElementById('tx-hs')?.value)||2.25}}};
+  closeSM(); toast('Paramètres taxe de séjour sauvegardés','ok'); showRapport('taxe');
+  const btn=document.querySelector('.rpt-item[onclick*="taxe"]');
+  if(btn){document.querySelectorAll('.rpt-item').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+}
+
+function renderTaxeRapport(area, cfg, pFrom, pTo, fmt2fn, pillfn, hdr){
+  const etoiles=cfg.etoiles;
+  const etoilesStr=etoiles===0?'Non classé':etoiles+' étoile'+(etoiles>1?'s':'');
+  const bareme=cfg.bareme[etoiles]||{bs:1.50,hs:2.25};
+  const fmt2=fmt2fn||((n)=>new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2}).format(n||0)+'€');
+  const pill=pillfn||((txt,cls)=>`<span class="pill ${cls}">${txt}</span>`);
+
+  const sejours=reservations.filter(r=>!['Annulee'].includes(r.status)&&r.checkin>=pFrom&&r.checkin<=pTo);
+  let totalNuits=0, totalMontant=0;
+  const tarifMap={};
+
+  const sejourRows=sejours.map(r=>{
+    const c=clientById(r.clientId);
+    const nuits=r.nights||1;
+    let taxeTotal=0;
+    for(let i=0;i<nuits;i++){
+      const d=new Date(new Date(r.checkin).getTime()+i*86400000).toISOString().slice(0,10);
+      const tarif=isHauteSaison(d,cfg)?bareme.hs:bareme.bs;
+      const pax=r.pax||1;
+      const taxeNuit=cfg.plafond>0?Math.min(tarif,cfg.plafond):tarif;
+      taxeTotal+=taxeNuit*pax;
+      const k=isHauteSaison(d,cfg)?'Haute':'Basse';
+      if(!tarifMap[k]) tarifMap[k]={saison:k,tarif:isHauteSaison(d,cfg)?bareme.hs:bareme.bs,nuits:0,total:0};
+      tarifMap[k].nuits+=pax; tarifMap[k].total+=taxeNuit*pax;
+    }
+    totalNuits+=nuits*(r.pax||1); totalMontant+=taxeTotal;
+    return `<tr><td style="font-weight:600">${c?.name||'—'}</td><td>${r.checkin?new Date(r.checkin).toLocaleDateString('fr-FR'):r.checkin}</td><td>${r.checkout?new Date(r.checkout).toLocaleDateString('fr-FR'):r.checkout}</td><td class="r">${nuits}</td><td class="r">${r.pax||1}</td><td>${pill(isHauteSaison(r.checkin,cfg)?'Haute':'Basse',isHauteSaison(r.checkin,cfg)?'pa':'pp')}</td><td class="r" style="font-weight:700">${fmt2(taxeTotal)}</td><td>${pill('Taxable','pg')}</td></tr>`;
+  });
+
+  const tarifRows=Object.values(tarifMap);
+  const periodLabel=getPeriodLabel();
+
+  area.innerHTML=(hdr||'')+(sejours.length>0?`<div class="kgrid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kcard"><div class="kbar" style="background:var(--amber)"></div><div class="klbl">Montant total à reverser</div><div class="kval" style="color:var(--amber)">${fmt2(totalMontant)}</div></div>
+    <div class="kcard"><div class="kbar" style="background:var(--blue)"></div><div class="klbl">Nuitées taxables</div><div class="kval">${totalNuits}</div></div>
+    <div class="kcard"><div class="kbar" style="background:var(--violet)"></div><div class="klbl">Séjours traités</div><div class="kval">${sejours.length}</div></div>
+  </div>`:'')+`
+  <div class="panel">
+    <div class="phd"><div class="ptit">Détail — Taxe de séjour ${etoilesStr} — ${periodLabel}</div><div class="pmeta">Commune : ${cfg.commune} (${cfg.codeINSEE})</div></div>
+    <table class="tbl"><thead><tr><th>Client</th><th>Arrivée</th><th>Départ</th><th class="r">Nuits</th><th class="r">PAX</th><th>Saison</th><th class="r">Taxe</th><th>Statut</th></tr></thead>
+    <tbody>${sejourRows.join('')||`<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--gray400)">Aucun séjour sur cette période</td></tr>`}
+    <tr style="font-weight:700;background:var(--amber-l);border-top:2px solid var(--amber)"><td colspan="4" style="padding:10px 12px;color:var(--amber)">TOTAL À REVERSER À LA MAIRIE</td><td class="r">${totalNuits}</td><td class="r">—</td><td class="r" style="font-size:15px;color:var(--amber)">${fmt2(totalMontant)}</td><td></td></tr>
+    </tbody></table>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="panel"><div class="phd"><div class="ptit">Récapitulatif par tarif</div></div><table class="tbl"><thead><tr><th>Saison</th><th class="r">Tarif/nuit</th><th class="r">Nuitées</th><th class="r">Total</th></tr></thead><tbody>${tarifRows.map(t=>`<tr><td>${t.saison==='Haute'?pill('Haute','pa'):pill('Basse','pp')}</td><td class="r">${fmt2(t.tarif)}</td><td class="r">${t.nuits}</td><td class="r" style="font-weight:700">${fmt2(t.total)}</td></tr>`).join('')||`<tr><td colspan="4" style="text-align:center;color:var(--gray400);padding:16px">Aucune donnée</td></tr>`}<tr style="font-weight:700;background:var(--gray50)"><td colspan="2">Total</td><td class="r">${totalNuits}</td><td class="r" style="color:var(--amber)">${fmt2(totalMontant)}</td></tr></tbody></table></div>
+    <div class="panel"><div class="phd"><div class="ptit">Informations légales</div></div><div class="pbody" style="font-size:12px;display:flex;flex-direction:column;gap:10px">
+      <div style="padding:10px;background:var(--amber-l);border-radius:8px;border:1px solid #fde68a"><div style="font-weight:700;color:var(--amber);margin-bottom:4px">💶 Montant total à reverser</div><div style="font-size:22px;font-weight:800;color:var(--amber)">${fmt2(totalMontant)}</div><div style="font-size:10px;color:var(--gray600);margin-top:4px">Selon barème communal · ${etoilesStr}</div></div>
+      <div style="color:var(--gray600);line-height:1.7"><div>📍 <strong>Commune :</strong> ${cfg.commune} (${cfg.codeINSEE})</div><div>🏨 <strong>Classement :</strong> ${etoilesStr}</div><div>📅 <strong>Période :</strong> ${periodLabel}</div><div>🧾 <strong>Exonérations :</strong> ${[cfg.exonerationsMineurs&&'Mineurs',cfg.exonerationsHandicap&&'Handicap',cfg.exonerationsSaisonniers&&'Saisonniers'].filter(Boolean).join(', ')||'Aucune'}</div></div>
+      <div style="font-size:10px;color:var(--gray400);border-top:1px solid var(--border);padding-top:8px">Document généré par Flowtym PMS · Usage déclaratif auprès de la commune.</div>
+    </div></div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// EXPORT PDF
+// ════════════════════════════════════════════════════════════
+const LANDSCAPE_REPORTS=['exp01','exp03','exp04','exp06','fin01','fin02','fin03','fin04','taxe'];
+
+async function exportPDF(){
+  toast('Génération PDF en cours...','');
+  try{
+    const {jsPDF}=window.jspdf;
+    const el=document.getElementById('rapportArea');
+    const isLandscape=LANDSCAPE_REPORTS.includes(currentRapport)||printOrientation==='landscape';
+    const orientation=isLandscape?'l':'p';
+    const pageW=isLandscape?297:210, pageH=isLandscape?210:297;
+    const margin=12, printW=pageW-margin*2;
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,width:el.scrollWidth,height:el.scrollHeight,windowWidth:el.scrollWidth});
+    const imgH=canvas.height*printW/canvas.width;
+    const pdf=new jsPDF(orientation,'mm',[pageW,pageH]);
+    pdf.setFontSize(9); pdf.setTextColor(120);
+    pdf.text(`Flowtym PMS · ${currentRapport.toUpperCase()} · ${getPeriodLabel()}`,margin,8);
+    pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`,pageW-margin,8,{align:'right'});
+    pdf.setDrawColor(200); pdf.line(margin,10,pageW-margin,10);
+    const contentY=14, availH=pageH-contentY-margin;
+    if(imgH<=availH){
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',margin,contentY,printW,imgH);
+    } else {
+      let yOffset=0; const sliceH=availH*canvas.width/printW;
+      while(yOffset<canvas.height){
+        if(yOffset>0) pdf.addPage([pageW,pageH],orientation);
+        const remaining=canvas.height-yOffset;
+        const sliceActual=Math.min(sliceH,remaining);
+        const sliceCanvas=document.createElement('canvas');
+        sliceCanvas.width=canvas.width; sliceCanvas.height=sliceActual;
+        sliceCanvas.getContext('2d').drawImage(canvas,0,yOffset,canvas.width,sliceActual,0,0,canvas.width,sliceActual);
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg',0.92),'JPEG',margin,contentY,printW,sliceActual*printW/canvas.width);
+        yOffset+=sliceActual;
+      }
+    }
+    pdf.save(`flowtym-${currentRapport}-${rptDateFrom||TODAY}.pdf`);
+    toast(`PDF exporté · ${orientation==='l'?'Paysage':'Portrait'}`,'ok');
+  }catch(e){console.error(e);toast('Erreur PDF — '+e.message,'err');}
+}
+
+function exportExcel(){
+  // Build CSV from table in rapportArea
+  const tables=document.querySelectorAll('#rapportArea table.tbl');
+  if(!tables.length){ toast('Aucun tableau à exporter',''); return; }
+  const rows=[];
+  tables[0].querySelectorAll('tr').forEach(tr=>{
+    const cells=[...tr.querySelectorAll('th,td')].map(td=>'"'+(td.textContent.trim().replace(/"/g,'""'))+'"');
+    if(cells.length) rows.push(cells.join(','));
+  });
+  const csv='\uFEFF'+rows.join('\n'); // BOM for Excel UTF-8
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`flowtym-${currentRapport}-${rptDateFrom||TODAY}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Export Excel (CSV) téléchargé','ok');
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  // Fermer tous les dropdowns au démarrage
+  document.querySelectorAll('.rpt-dropdown').forEach(d => d.style.display = 'none');
+  // Marquer le groupe Exploitation comme actif
+  const expBtn = document.querySelector('.rpt-family-btn[onclick*="\'exp\'"]');
+  if (expBtn) expBtn.classList.add('active');
+  // Afficher le premier rapport au démarrage
+  showRapport(currentRapport);
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/connectivity.js"></script>
+</body>
+</html>

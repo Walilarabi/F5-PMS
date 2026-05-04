@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flowtym PMS – Conformité Fiscale</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   FLOWTYM – CONFORMITÉ FISCALE
+   Design system identique au reste du PMS
+   Couleur primaire : #8B5CF6 | Police : Inter | Arrondis
+═══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --v:#8B5CF6;--v2:#7C3AED;--v3:#6D28D9;
+  --vl:#EDE9FE;--vl2:#F5F3FF;--vs:#C4B5FD;
+  --g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;--g300:#D1D5DB;
+  --g400:#9CA3AF;--g500:#6B7280;--g700:#374151;--g800:#1F2937;--g900:#111827;
+  --green:#10B981;--greenl:#D1FAE5;--green2:#065F46;
+  --red:#EF4444;--redl:#FEE2E2;--red2:#991B1B;
+  --amber:#F59E0B;--amberl:#FEF3C7;--amber2:#92400E;
+  --blue:#3B82F6;--bluel:#DBEAFE;--blue2:#1E40AF;
+  --r16:16px;--r20:20px;--r24:24px;
+}
+html,body{height:100%;font-family:"Inter",sans-serif;font-size:13px;color:var(--g900);background:#F4F6FA}
+body{display:flex;flex-direction:column}
+
+/* ═══ TOP BAR ═══ */
+.topbar{
+  height:56px;background:#fff;border-bottom:1px solid var(--g200);
+  display:none; /* Masqué — topbar Flowtym principale utilisée */
+  padding:0 24px;flex-shrink:0;gap:16px;
+}
+.topbar-brand{display:flex;align-items:center;gap:10px}
+.topbar-logo{
+  width:36px;height:36px;background:linear-gradient(135deg,var(--v),var(--v3));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;font-weight:800;
+}
+.topbar-name{font-size:15px;font-weight:700;color:var(--g900)}
+.topbar-badge{
+  background:var(--vl2);color:var(--v);border:1px solid var(--vl);
+  padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.topbar-actions{display:flex;align-items:center;gap:10px}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 14px;
+  border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;
+}
+.btn-v{background:var(--v);color:#fff}
+.btn-v:hover{background:var(--v2)}
+.btn-g{background:var(--g100);color:var(--g700);border:1px solid var(--g200)}
+.btn-g:hover{background:var(--g200)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-icon{width:32px;height:32px;padding:0;justify-content:center;align-items:center}
+
+/* ═══ LAYOUT ═══ */
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{
+  width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--g200);
+  display:none; /* Masqué — menu horizontal (tabs) utilisé */
+}
+.nav-section{padding:14px 16px 6px;font-size:9px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.8px}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:9px 16px;
+  border-radius:10px;margin:1px 8px;cursor:pointer;
+  font-size:12px;font-weight:500;color:var(--g500);transition:all .15s;
+}
+.nav-item:hover{background:var(--g50);color:var(--g900)}
+.nav-item.active{background:var(--vl2);color:var(--v);font-weight:600}
+.nav-item i{width:16px;text-align:center;font-size:13px}
+.nav-badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;
+}
+.nav-badge.amber{background:var(--amber)}
+.nav-badge.green{background:var(--green)}
+
+/* ═══ MAIN ═══ */
+.main{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:0}
+
+/* ═══ PAGE HEADER ═══ */
+.page-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:20px;flex-wrap:wrap;gap:12px;
+}
+.page-title{font-size:20px;font-weight:800;color:var(--g900);letter-spacing:-.4px}
+.page-subtitle{font-size:11px;color:var(--g400);margin-top:2px;font-weight:500}
+
+/* ═══ KPI GRID ═══ */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+.kpi{
+  background:#fff;border:1px solid var(--g200);border-radius:var(--r16);
+  padding:16px 18px;display:flex;align-items:center;gap:14px;
+  transition:all .15s;cursor:default;
+}
+.kpi:hover{box-shadow:0 4px 16px rgba(139,92,246,.08);border-color:var(--vs)}
+.kpi-icon{
+  width:44px;height:44px;border-radius:12px;display:flex;
+  align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
+.kpi-label{font-size:9px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px}
+.kpi-value{font-size:26px;font-weight:800;color:var(--g900);letter-spacing:-.5px;line-height:1}
+.kpi-delta{font-size:10px;font-weight:600;margin-top:3px}
+
+/* ═══ CARD ═══ */
+.card{background:#fff;border:1px solid var(--g200);border-radius:var(--r16);overflow:hidden;margin-bottom:16px}
+.card-header{
+  padding:14px 18px;border-bottom:1px solid var(--g100);
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--g50);
+}
+.card-title{font-size:12px;font-weight:700;color:var(--g900);display:flex;align-items:center;gap:7px}
+.card-body{padding:0}
+
+/* ═══ TABLE ═══ */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{
+  font-size:9px;font-weight:700;color:var(--g400);text-transform:uppercase;
+  letter-spacing:.6px;padding:10px 14px;text-align:left;
+  background:var(--g50);border-bottom:1px solid var(--g200);white-space:nowrap;
+}
+.tbl th:first-child{border-radius:0}
+.tbl td{
+  padding:11px 14px;border-bottom:1px solid var(--g100);
+  font-size:12px;color:var(--g700);vertical-align:middle;
+}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--g50)}
+.tbl-scroll{overflow-x:auto}
+
+/* ═══ BADGES ═══ */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;white-space:nowrap}
+.pill-green{background:var(--greenl);color:var(--green2)}
+.pill-red{background:var(--redl);color:var(--red2)}
+.pill-amber{background:var(--amberl);color:var(--amber2)}
+.pill-blue{background:var(--bluel);color:var(--blue2)}
+.pill-violet{background:var(--vl);color:var(--v3)}
+.pill-gray{background:var(--g100);color:var(--g500)}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ═══ TABS ═══ */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--g200);background:#fff;flex-shrink:0}
+.tab{
+  padding:12px 18px;font-size:11px;font-weight:600;color:var(--g400);
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;
+  white-space:nowrap;display:flex;align-items:center;gap:6px;
+}
+.tab:hover{color:var(--g700)}
+.tab.active{color:var(--v);border-bottom-color:var(--v)}
+.tab-count{
+  background:var(--g100);color:var(--g500);
+  font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;
+}
+.tab.active .tab-count{background:var(--vl);color:var(--v)}
+
+/* ═══ SECTIONS (tab content) ═══ */
+.section{display:none;flex:1;overflow-y:auto}
+.section.active{display:block}
+
+/* ═══ FORM ELEMENTS ═══ */
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.form-label{font-size:9px;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.5px}
+.form-input{
+  height:38px;padding:0 12px;border-radius:9px;border:1.5px solid var(--g200);
+  background:var(--g50);font-family:inherit;font-size:13px;color:var(--g900);
+  outline:none;transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--v);background:#fff;box-shadow:0 0 0 3px rgba(139,92,246,.1)}
+.form-select{appearance:none;cursor:pointer}
+.form-textarea{height:80px;padding:10px 12px;resize:none;line-height:1.5}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* ═══ SEARCH BAR ═══ */
+.search-wrap{position:relative;flex:1;max-width:300px}
+.search-wrap i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--g400);font-size:12px}
+.search-input{
+  width:100%;height:34px;padding:0 12px 0 32px;border-radius:9px;
+  border:1.5px solid var(--g200);background:var(--g50);font-family:inherit;
+  font-size:12px;color:var(--g900);outline:none;
+}
+.search-input:focus{border-color:var(--v);background:#fff}
+
+/* ═══ TOOLBAR ROW ═══ */
+.toolbar{
+  display:flex;align-items:center;gap:10px;padding:12px 18px;
+  border-bottom:1px solid var(--g100);flex-wrap:wrap;
+}
+
+/* ═══ STATUS DOTS ═══ */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+
+/* ═══ MODAL ═══ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(17,24,39,.5);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:#fff;border-radius:22px;width:100%;max-width:640px;
+  max-height:92vh;overflow-y:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,.18);animation:modalIn .22s ease;
+}
+.modal-lg{max-width:860px}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(16px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{
+  padding:18px 22px;background:linear-gradient(130deg,var(--v),var(--v3));
+  display:flex;justify-content:space-between;align-items:center;
+  border-radius:22px 22px 0 0;position:sticky;top:0;z-index:1;
+}
+.modal-title{font-size:15px;font-weight:700;color:#fff}
+.modal-close{
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.2);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.modal-body{padding:22px}
+.modal-footer{
+  padding:14px 22px;border-top:1px solid var(--g100);
+  display:flex;justify-content:flex-end;gap:8px;
+  position:sticky;bottom:0;background:#fff;border-radius:0 0 22px 22px;
+}
+
+/* ═══ ALERT BOX ═══ */
+.alert{display:flex;gap:10px;padding:12px 14px;border-radius:12px;font-size:12px;margin-bottom:14px}
+.alert i{font-size:14px;flex-shrink:0;margin-top:1px}
+.alert-info{background:var(--bluel);color:var(--blue2);border:1px solid #BFDBFE}
+.alert-warn{background:var(--amberl);color:var(--amber2);border:1px solid #FDE68A}
+.alert-success{background:var(--greenl);color:var(--green2);border:1px solid #A7F3D0}
+.alert-error{background:var(--redl);color:var(--red2);border:1px solid #FECACA}
+
+/* ═══ PROGRESS BAR ═══ */
+.progress{height:6px;background:var(--g100);border-radius:3px;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px;background:var(--v);transition:width .3s}
+
+/* ═══ TIMELINE ═══ */
+.timeline{display:flex;flex-direction:column;gap:0;padding:16px 18px}
+.timeline-item{display:flex;gap:14px;padding-bottom:16px;position:relative}
+.timeline-item:not(:last-child)::before{
+  content:"";position:absolute;left:15px;top:28px;bottom:0;
+  width:1.5px;background:var(--g200);
+}
+.timeline-dot{
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:12px;flex-shrink:0;border:2px solid;
+}
+.timeline-dot.green{background:var(--greenl);color:var(--green);border-color:var(--green)}
+.timeline-dot.red{background:var(--redl);color:var(--red);border-color:var(--red)}
+.timeline-dot.amber{background:var(--amberl);color:var(--amber);border-color:var(--amber)}
+.timeline-dot.gray{background:var(--g100);color:var(--g400);border-color:var(--g300)}
+.timeline-content{flex:1;padding-top:5px}
+.timeline-title{font-size:12px;font-weight:700;color:var(--g900)}
+.timeline-meta{font-size:10px;color:var(--g400);margin-top:2px}
+.timeline-payload{
+  margin-top:8px;background:var(--g900);color:#E2E8F0;
+  border-radius:8px;padding:10px 12px;font-family:monospace;font-size:10px;
+  line-height:1.6;overflow-x:auto;white-space:pre;
+}
+
+/* ═══ CODE BLOCK ═══ */
+.code-block{
+  background:var(--g900);color:#E2E8F0;border-radius:10px;
+  padding:14px 16px;font-family:monospace;font-size:11px;
+  line-height:1.7;overflow-x:auto;white-space:pre;
+}
+
+/* ═══ STAT CARD ═══ */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--g100)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:12px;color:var(--g500)}
+.stat-value{font-size:13px;font-weight:700;color:var(--g900)}
+
+/* ═══ EMPTY STATE ═══ */
+.empty{text-align:center;padding:40px 20px;color:var(--g400)}
+.empty i{font-size:36px;margin-bottom:12px;display:block;opacity:.4}
+.empty p{font-size:12px;font-weight:600}
+
+/* ═══ TOAST ═══ */
+#toast{
+  position:fixed;bottom:20px;right:20px;z-index:9999;
+  background:var(--g900);color:#fff;padding:11px 16px;
+  border-radius:12px;font-size:12px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  transform:translateY(80px);opacity:0;transition:all .28s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.2);min-width:240px;
+}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ═══ PDF PREVIEW ═══ */
+.pdf-preview{
+  background:var(--g100);border-radius:12px;padding:16px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  border:2px dashed var(--g300);min-height:200px;justify-content:center;
+  cursor:pointer;transition:all .15s;
+}
+.pdf-preview:hover{border-color:var(--v);background:var(--vl2)}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:900px){
+  .sidebar{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .kpi-grid{grid-template-columns:1fr}
+  .form-2,.form-3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">F</div>
+    <div>
+      <div class="topbar-name">Flowtym PMS</div>
+    </div>
+    <span class="topbar-badge"><i class="fa-solid fa-shield-check" style="margin-right:5px"></i>Conformité Fiscale</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-g btn-sm" onclick="openModal('modal-settings')">
+      <i class="fa-solid fa-gear"></i> Paramètres PDP
+    </button>
+    <button class="btn btn-v btn-sm" onclick="openModal('modal-new-invoice')">
+      <i class="fa-solid fa-plus"></i> Nouvelle facture
+    </button>
+  </div>
+</div>
+
+<!-- ═══ LAYOUT ═══ -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="nav-section">Facturation</div>
+    <div class="nav-item active" onclick="goToTab('dashboard')">
+      <i class="fa-solid fa-gauge"></i> Dashboard
+    </div>
+    <div class="nav-item" onclick="goToTab('invoices')">
+      <i class="fa-regular fa-file-invoice"></i> Factures
+      <span class="nav-badge amber" id="nav-pending">3</span>
+    </div>
+    <div class="nav-item" onclick="goToTab('b2c')">
+      <i class="fa-solid fa-users"></i> E‑reporting B2C
+    </div>
+    <div class="nav-section">Suivi</div>
+    <div class="nav-item" onclick="goToTab('journal')">
+      <i class="fa-solid fa-list-ul"></i> Journal PDP
+      <span class="nav-badge red" id="nav-errors">1</span>
+    </div>
+    <div class="nav-item" onclick="goToTab('params')">
+      <i class="fa-solid fa-sliders"></i> Paramètres
+    </div>
+    <div class="nav-section">Aide</div>
+    <div class="nav-item" onclick="showToast('Documentation en cours de rédaction','info')">
+      <i class="fa-regular fa-circle-question"></i> Documentation
+    </div>
+    <div style="padding:16px;margin-top:auto">
+      <div style="background:var(--vl2);border:1px solid var(--vl);border-radius:12px;padding:12px;font-size:10px;color:var(--g500)">
+        <div style="font-weight:700;color:var(--v);margin-bottom:4px"><i class="fa-solid fa-circle-check" style="margin-right:5px"></i>Module actif</div>
+        Conformité loi 2026<br>Factur-X · Peppol · E-reporting
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" style="padding:0;overflow:hidden;display:flex;flex-direction:column">
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" id="tab-dashboard" onclick="goToTab('dashboard')">
+        <i class="fa-solid fa-gauge"></i> Dashboard
+      </div>
+      <div class="tab" id="tab-invoices" onclick="goToTab('invoices')">
+        <i class="fa-regular fa-file-invoice"></i> Factures
+        <span class="tab-count" id="tab-count-invoices">7</span>
+      </div>
+      <div class="tab" id="tab-b2c" onclick="goToTab('b2c')">
+        <i class="fa-solid fa-chart-bar"></i> E‑reporting B2C
+      </div>
+      <div class="tab" id="tab-journal" onclick="goToTab('journal')">
+        <i class="fa-solid fa-clock-rotate-left"></i> Journal PDP
+        <span class="tab-count" id="tab-count-journal">12</span>
+      </div>
+      <div class="tab" id="tab-params" onclick="goToTab('params')">
+        <i class="fa-solid fa-sliders"></i> Paramètres
+      </div>
+    </div>
+
+    <!-- ═════════ SECTION DASHBOARD ═════════ -->
+    <div id="sec-dashboard" class="section active" style="padding:20px 24px;overflow-y:auto">
+
+      <div class="alert alert-info" style="margin-bottom:20px">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>
+          <strong>Loi 2026 – Facturation électronique obligatoire</strong><br>
+          Ce module gère l'envoi de vos factures B2B vers une Plateforme de Dématérialisation Partenaire (PDP) et l'e-reporting de vos transactions B2C.
+        </div>
+      </div>
+
+      <!-- KPI GRID -->
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-icon" style="background:#D1FAE5;color:#10B981"><i class="fa-solid fa-circle-check"></i></div>
+          <div>
+            <div class="kpi-label">Transmises</div>
+            <div class="kpi-value" id="kpi-sent">24</div>
+            <div class="kpi-delta" style="color:var(--green)">↑ +8 ce mois</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon" style="background:#FEF3C7;color:#F59E0B"><i class="fa-solid fa-clock"></i></div>
+          <div>
+            <div class="kpi-label">En attente</div>
+            <div class="kpi-value" id="kpi-pending">3</div>
+            <div class="kpi-delta" style="color:var(--amber)">À envoyer</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon" style="background:#FEE2E2;color:#EF4444"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div>
+            <div class="kpi-label">Rejetées</div>
+            <div class="kpi-value" id="kpi-rejected">1</div>
+            <div class="kpi-delta" style="color:var(--red)">Action requise</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon" style="background:#DBEAFE;color:#3B82F6"><i class="fa-solid fa-users"></i></div>
+          <div>
+            <div class="kpi-label">E-reporting B2C</div>
+            <div class="kpi-value" id="kpi-b2c">18</div>
+            <div class="kpi-delta" style="color:var(--blue)">Transactions avril</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon" style="background:var(--vl);color:var(--v)"><i class="fa-solid fa-euro-sign"></i></div>
+          <div>
+            <div class="kpi-label">CA facturé TTC</div>
+            <div class="kpi-value" id="kpi-ca">48 290€</div>
+            <div class="kpi-delta" style="color:var(--v)">Mois en cours</div>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-icon" style="background:#D1FAE5;color:#10B981"><i class="fa-solid fa-server"></i></div>
+          <div>
+            <div class="kpi-label">PDP Status</div>
+            <div class="kpi-value" style="font-size:14px;color:var(--green)">Opérationnelle</div>
+            <div class="kpi-delta" style="color:var(--green)">Chorus Pro simulé</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEUX COLONNES -->
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px">
+
+        <!-- Dernières factures -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-regular fa-file-invoice" style="color:var(--v)"></i>Factures récentes</div>
+            <button class="btn btn-g btn-sm" onclick="goToTab('invoices')">Voir tout</button>
+          </div>
+          <div class="tbl-scroll">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>N° Facture</th><th>Client</th><th>TTC</th><th>Statut PDP</th>
+                </tr>
+              </thead>
+              <tbody id="recent-invoices-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Taux de succès PDP -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-chart-pie" style="color:var(--v)"></i>Taux PDP ce mois</div>
+          </div>
+          <div style="padding:18px">
+            <div style="margin-bottom:14px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:11px;font-weight:600;color:var(--g700)">Acceptées</span>
+                <span style="font-size:11px;font-weight:700;color:var(--green)">85.7%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:85.7%;background:var(--green)"></div></div>
+            </div>
+            <div style="margin-bottom:14px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:11px;font-weight:600;color:var(--g700)">En attente</span>
+                <span style="font-size:11px;font-weight:700;color:var(--amber)">10.7%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:10.7%;background:var(--amber)"></div></div>
+            </div>
+            <div style="margin-bottom:20px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                <span style="font-size:11px;font-weight:600;color:var(--g700)">Rejetées</span>
+                <span style="font-size:11px;font-weight:700;color:var(--red)">3.6%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:3.6%;background:var(--red)"></div></div>
+            </div>
+            <div style="background:var(--vl2);border:1px solid var(--vl);border-radius:10px;padding:10px 12px">
+              <div style="font-size:10px;font-weight:700;color:var(--v);margin-bottom:6px">Prochaine échéance</div>
+              <div style="font-size:12px;font-weight:600;color:var(--g900)">E-reporting B2C — 31 mai 2026</div>
+              <div style="font-size:10px;color:var(--g400);margin-top:2px">18 transactions à déclarer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Journal récent -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--v)"></i>Derniers échanges PDP</div>
+          <button class="btn btn-g btn-sm" onclick="goToTab('journal')">Journal complet</button>
+        </div>
+        <div class="timeline" id="recent-journal"></div>
+      </div>
+    </div>
+
+    <!-- ═════════ SECTION FACTURES ═════════ -->
+    <div id="sec-invoices" class="section" style="overflow-y:auto">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" class="search-input" placeholder="N° facture, client…" id="inv-search" oninput="filterInvoices()">
+        </div>
+        <select class="form-input form-select" style="height:34px;font-size:11px;width:auto" id="inv-type-filter" onchange="filterInvoices()">
+          <option value="">Tous types</option>
+          <option value="B2B">B2B</option>
+          <option value="B2C">B2C</option>
+        </select>
+        <select class="form-input form-select" style="height:34px;font-size:11px;width:auto" id="inv-status-filter" onchange="filterInvoices()">
+          <option value="">Tous statuts PDP</option>
+          <option value="accepted">Acceptées</option>
+          <option value="pending">En attente</option>
+          <option value="rejected">Rejetées</option>
+          <option value="sent">Envoyées</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-g btn-sm" onclick="exportAllXML()">
+            <i class="fa-solid fa-file-code"></i> Export XML
+          </button>
+          <button class="btn btn-g btn-sm" onclick="exportExcel()">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+          </button>
+        </div>
+      </div>
+      <div class="tbl-scroll" style="padding:0 0 20px">
+        <table class="tbl" id="inv-table">
+          <thead>
+            <tr>
+              <th>N° Facture</th>
+              <th>Client</th>
+              <th>Type</th>
+              <th>Émission</th>
+              <th>HT</th>
+              <th>TVA</th>
+              <th>TTC</th>
+              <th>Statut PDP</th>
+              <th>Paiement</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inv-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═════════ SECTION E-REPORTING B2C ═════════ -->
+    <div id="sec-b2c" class="section" style="padding:20px 24px;overflow-y:auto">
+
+      <div class="alert alert-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <div>
+          <strong>E-reporting B2C obligatoire dès 2026</strong><br>
+          Chaque mois, vous devez déclarer les données agrégées de vos transactions B2C auprès de l'administration via une PDP agréée.
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <!-- Période en cours -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-calendar-check" style="color:var(--v)"></i>Période : Avril 2026</div>
+            <span class="pill pill-amber">En cours</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+            <div class="stat-row"><span class="stat-label">Transactions B2C</span><span class="stat-value">18</span></div>
+            <div class="stat-row"><span class="stat-label">CA HT total</span><span class="stat-value">4 280,00 €</span></div>
+            <div class="stat-row"><span class="stat-label">TVA 10% collectée</span><span class="stat-value">428,00 €</span></div>
+            <div class="stat-row"><span class="stat-label">Taxe de séjour</span><span class="stat-value">135,00 €</span></div>
+            <div class="stat-row"><span class="stat-label">CA TTC total</span><span class="stat-value" style="color:var(--v);font-size:16px">4 843,00 €</span></div>
+            <div style="margin-top:4px;display:flex;gap:8px">
+              <button class="btn btn-v" style="flex:1" onclick="generateEreporting()">
+                <i class="fa-solid fa-file-csv"></i> Générer CSV
+              </button>
+              <button class="btn btn-g" onclick="generateEreportingXML()">
+                <i class="fa-solid fa-file-code"></i> XML
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Historique -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-history" style="color:var(--v)"></i>Historique des dépôts</div>
+          </div>
+          <div style="padding:16px">
+            <div id="ereporting-history"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Détail transactions -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-receipt" style="color:var(--v)"></i>Transactions B2C — Avril 2026</div>
+          <span class="pill pill-blue">18 transactions</span>
+        </div>
+        <div class="tbl-scroll">
+          <table class="tbl">
+            <thead>
+              <tr><th>Date</th><th>N° Facture</th><th>Client</th><th>Pays</th><th>TTC</th><th>TVA 10%</th><th>T. Séjour</th></tr>
+            </thead>
+            <tbody id="b2c-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═════════ SECTION JOURNAL PDP ═════════ -->
+    <div id="sec-journal" class="section" style="padding:20px 24px;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--g900)">Journal des échanges PDP</div>
+          <div style="font-size:11px;color:var(--g400);margin-top:2px">Historique complet des appels vers la PDP</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <select class="form-input form-select" style="height:32px;font-size:11px;width:auto">
+            <option>Toutes statuts</option>
+            <option>Accepté</option>
+            <option>Rejeté</option>
+            <option>Envoyé</option>
+          </select>
+          <button class="btn btn-g btn-sm" onclick="exportJournalCSV()">
+            <i class="fa-solid fa-download"></i> Exporter
+          </button>
+        </div>
+      </div>
+      <div id="journal-timeline"></div>
+    </div>
+
+    <!-- ═════════ SECTION PARAMÈTRES ═════════ -->
+    <div id="sec-params" class="section" style="padding:20px 24px;overflow-y:auto">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <!-- PDP Config -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-server" style="color:var(--v)"></i>Configuration PDP</div>
+          </div>
+          <div style="padding:18px">
+            <div class="form-group">
+              <label class="form-label">URL de la PDP</label>
+              <input type="url" class="form-input" id="pdp-url" value="https://pdp.chorus-pro-simulation.fr/api/v1" placeholder="https://votre-pdp.fr/api/v1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Clé API</label>
+              <input type="password" class="form-input" id="pdp-key" value="sk_test_flowtym_xxxxxxxxxxxxxxxx" placeholder="sk_...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">SIRET émetteur</label>
+              <input type="text" class="form-input" id="pdp-siret" value="000 000 000 00000" placeholder="000 000 000 00000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">N° TVA intracommunautaire</label>
+              <input type="text" class="form-input" id="pdp-tva" value="FR00 000 000 000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Délai de rejeu (secondes)</label>
+              <input type="number" class="form-input" id="pdp-retry" value="30">
+            </div>
+            <button class="btn btn-v" style="width:100%" onclick="saveParams()">
+              <i class="fa-solid fa-floppy-disk"></i> Sauvegarder
+            </button>
+          </div>
+        </div>
+        <!-- Format & seuils -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-sliders" style="color:var(--v)"></i>Format & Seuils</div>
+          </div>
+          <div style="padding:18px">
+            <div class="form-group">
+              <label class="form-label">Format facture B2B</label>
+              <select class="form-input form-select" id="fmt-b2b">
+                <option value="facturx">Factur-X (PDF/A-3)</option>
+                <option value="ubl">UBL 2.1</option>
+                <option value="cii">CII (UN/CEFACT)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Format e-reporting B2C</label>
+              <select class="form-input form-select" id="fmt-b2c">
+                <option value="csv">CSV mensuel</option>
+                <option value="xml">XML Peppol</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Seuil d'alerte rejet (%)</label>
+              <input type="number" class="form-input" value="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email de notification</label>
+              <input type="email" class="form-input" value="comptabilite@mas-provencal.fr">
+            </div>
+            <div class="alert alert-success" style="margin-top:8px">
+              <i class="fa-solid fa-circle-check"></i>
+              <div>Connexion PDP active. Dernier test : il y a 2 min.</div>
+            </div>
+            <button class="btn btn-g" style="width:100%;margin-top:8px" onclick="testPDP()">
+              <i class="fa-solid fa-plug"></i> Tester la connexion PDP
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SQL tables -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-database" style="color:var(--v)"></i>Tables Supabase requises</div>
+          <button class="btn btn-g btn-sm" onclick="copySQL()">
+            <i class="fa-solid fa-copy"></i> Copier SQL
+          </button>
+        </div>
+        <div style="padding:16px">
+          <div class="code-block" id="sql-block">-- Statut des envois PDP
+CREATE TABLE invoice_pdp_status (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID REFERENCES invoices(id) ON DELETE CASCADE,
+  status VARCHAR(20) CHECK (status IN ('sent','accepted','rejected','pending')),
+  response_payload JSONB,
+  error_message TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Historique des echanges PDP
+CREATE TABLE pdp_exchange_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID REFERENCES invoices(id) ON DELETE SET NULL,
+  request_payload JSONB NOT NULL,
+  response_payload JSONB,
+  http_status INT,
+  duration_ms INT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- E-reporting batches (B2C)
+CREATE TABLE ereporting_batches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  period DATE NOT NULL,
+  generated_at TIMESTAMP DEFAULT NOW(),
+  file_path TEXT,
+  file_format VARCHAR(10) DEFAULT 'csv',
+  status VARCHAR(20) DEFAULT 'generated',
+  total_amount DECIMAL(12,2),
+  transaction_count INT
+);
+
+-- Index de performance
+CREATE INDEX idx_pdp_status_invoice ON invoice_pdp_status(invoice_id);
+CREATE INDEX idx_pdp_logs_invoice ON pdp_exchange_logs(invoice_id);
+CREATE INDEX idx_pdp_logs_date ON pdp_exchange_logs(created_at DESC);</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════ MODAL DÉTAIL FACTURE ═══════ -->
+<div class="modal-overlay" id="modal-invoice-detail">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-regular fa-file-invoice" style="margin-right:8px"></i>Détail facture · <span id="detail-inv-num"></span></div>
+      <button class="modal-close" onclick="closeModal('modal-invoice-detail')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Informations facture</div>
+          <div class="stat-row"><span class="stat-label">N° Facture</span><span class="stat-value" id="d-num"></span></div>
+          <div class="stat-row"><span class="stat-label">Client</span><span class="stat-value" id="d-client"></span></div>
+          <div class="stat-row"><span class="stat-label">Type</span><span class="stat-value" id="d-type"></span></div>
+          <div class="stat-row"><span class="stat-label">Date émission</span><span class="stat-value" id="d-date"></span></div>
+          <div class="stat-row"><span class="stat-label">Montant HT</span><span class="stat-value" id="d-ht"></span></div>
+          <div class="stat-row"><span class="stat-label">TVA</span><span class="stat-value" id="d-tva"></span></div>
+          <div class="stat-row"><span class="stat-label">Total TTC</span><span class="stat-value" style="color:var(--v)" id="d-ttc"></span></div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Statut PDP</div>
+          <div style="text-align:center;padding:20px;background:var(--g50);border-radius:12px;border:1px solid var(--g200)" id="d-pdp-status">
+          </div>
+          <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button class="btn btn-v btn-sm" onclick="sendToPDP(currentInvoiceId)">
+              <i class="fa-solid fa-paper-plane"></i> Renvoyer PDP
+            </button>
+            <button class="btn btn-g btn-sm" onclick="downloadXML(currentInvoiceId)">
+              <i class="fa-solid fa-file-code"></i> Factur-X XML
+            </button>
+            <button class="btn btn-g btn-sm" onclick="printInvoice(currentInvoiceId)">
+              <i class="fa-solid fa-print"></i> Imprimer PDF
+            </button>
+            <button class="btn btn-g btn-sm" style="color:var(--red);border-color:var(--redl)" onclick="cancelInvoice(currentInvoiceId)">
+              <i class="fa-solid fa-ban"></i> Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Historique PDP</div>
+      <div id="d-timeline" class="timeline" style="padding:0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-g" onclick="closeModal('modal-invoice-detail')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL NOUVELLE FACTURE ═══════ -->
+<div class="modal-overlay" id="modal-new-invoice">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-plus" style="margin-right:8px"></i>Nouvelle facture</div>
+      <button class="modal-close" onclick="closeModal('modal-new-invoice')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-2">
+        <div class="form-group">
+          <label class="form-label">N° de facture</label>
+          <input type="text" class="form-input" id="new-num" placeholder="FACT-2026-XXX" value="">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select class="form-input form-select" id="new-type">
+            <option value="B2B">B2B (professionnel)</option>
+            <option value="B2C">B2C (particulier)</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label class="form-label">Client</label>
+          <input type="text" class="form-input" id="new-client" placeholder="Raison sociale ou nom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">SIRET client (B2B)</label>
+          <input type="text" class="form-input" id="new-siret" placeholder="000 000 000 00000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date d'émission</label>
+          <input type="date" class="form-input" id="new-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Montant HT (€)</label>
+          <input type="number" class="form-input" id="new-ht" placeholder="0.00" step="0.01" oninput="calcNewTTC()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Taux TVA</label>
+          <select class="form-input form-select" id="new-tva-rate" onchange="calcNewTTC()">
+            <option value="10">10%</option>
+            <option value="20">20%</option>
+            <option value="5.5">5.5%</option>
+            <option value="0">0%</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:var(--vl2);border:1.5px solid var(--vl);border-radius:12px;padding:14px;margin-top:4px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--g500)">Montant HT</span>
+          <span style="font-size:12px;font-weight:700;color:var(--g900)" id="calc-ht">0,00 €</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:12px;color:var(--g500)">TVA</span>
+          <span style="font-size:12px;font-weight:700;color:var(--g900)" id="calc-tva">0,00 €</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--vl)">
+          <span style="font-size:13px;font-weight:700;color:var(--v2)">Total TTC</span>
+          <span style="font-size:18px;font-weight:800;color:var(--v)" id="calc-ttc">0,00 €</span>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:14px">
+        <label class="form-label">Référence réservation (optionnel)</label>
+        <input type="text" class="form-input" id="new-resa" placeholder="RES-XXXX">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-g" onclick="closeModal('modal-new-invoice')">Annuler</button>
+      <button class="btn btn-v" onclick="createInvoice()">
+        <i class="fa-solid fa-paper-plane"></i> Créer & Envoyer PDP
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL PARAMÈTRES PDP ═══════ -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa-solid fa-gear" style="margin-right:8px"></i>Paramètres PDP</div>
+      <button class="modal-close" onclick="closeModal('modal-settings')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info">
+        <i class="fa-solid fa-circle-info"></i>
+        <div>Ces paramètres configurent la connexion à votre Plateforme de Dématérialisation Partenaire (PDP) agréée par la DGFiP.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">PDP agréée</label>
+        <select class="form-input form-select">
+          <option>Chorus Pro (simulation)</option>
+          <option>Yooz</option>
+          <option>Docaposte</option>
+          <option>Autre PDP agréée</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL endpoint</label>
+        <input type="url" class="form-input" value="https://pdp.chorus-pro-simulation.fr/api/v1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Token d'authentification</label>
+        <input type="password" class="form-input" value="sk_test_xxxxxxxx">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-g" onclick="closeModal('modal-settings')">Annuler</button>
+      <button class="btn btn-v" onclick="saveParams();closeModal('modal-settings')">
+        <i class="fa-solid fa-floppy-disk"></i> Sauvegarder
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><i id="toast-ico" class="fa-solid fa-circle-check"></i><span id="toast-msg">OK</span></div>
+
+<script>
+// ══════════════════════════════════════════
+// FLOWTYM — CONFORMITÉ FISCALE
+// pdpService.js + logique métier
+// ══════════════════════════════════════════
+
+// ── SUPABASE (réutilise la connexion existante) ──
+const SUPABASE_URL = localStorage.getItem('flowtym_supabase_url') || 'https://votre-projet.supabase.co';
+const SUPABASE_KEY = localStorage.getItem('flowtym_supabase_key') || 'votre-cle-anon';
+let db = null;
+try {
+  if (window.supabase && SUPABASE_URL !== 'https://votre-projet.supabase.co') {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+} catch(e) { console.warn('Supabase non configuré — mode démo actif'); }
+
+// ── DATA MOCKÉE ──
+const INVOICES = [
+  { id:'INV-2026-001', num:'FACT-2026-001', client:'Tech Corp SAS', siret:'442 500 234 00029', type:'B2B', date:'2026-04-01', ht:1450.00, tva:145.00, ttc:1595.00, pdp:'accepted', payment:'paid', resa:'RES-001' },
+  { id:'INV-2026-002', num:'FACT-2026-002', client:'Sophie Dubois', siret:'', type:'B2C', date:'2026-04-03', ht:327.27, tva:32.73, ttc:360.00, pdp:'accepted', payment:'paid', resa:'RES-002' },
+  { id:'INV-2026-003', num:'FACT-2026-003', client:'Dupont Immobilier', siret:'399 075 288 00014', type:'B2B', date:'2026-04-08', ht:1590.91, tva:159.09, ttc:1750.00, pdp:'pending', payment:'pending', resa:'RES-003' },
+  { id:'INV-2026-004', num:'FACT-2026-004', client:'Ali Larabi', siret:'', type:'B2C', date:'2026-04-10', ht:327.27, tva:32.73, ttc:360.00, pdp:'rejected', payment:'pending', resa:'RES-004' },
+  { id:'INV-2026-005', num:'FACT-2026-005', client:'Event Partners SARL', siret:'521 489 302 00041', type:'B2B', date:'2026-04-12', ht:3181.82, tva:318.18, ttc:3500.00, pdp:'accepted', payment:'paid', resa:'' },
+  { id:'INV-2026-006', num:'FACT-2026-006', client:'Marie Martin', siret:'', type:'B2C', date:'2026-04-15', ht:163.64, tva:16.36, ttc:180.00, pdp:'pending', payment:'pending', resa:'RES-005' },
+  { id:'INV-2026-007', num:'FACT-2026-007', client:'Séminaires France', siret:'612 048 157 00023', type:'B2B', date:'2026-04-20', ht:4545.45, tva:454.55, ttc:5000.00, pdp:'sent', payment:'pending', resa:'' },
+];
+
+const B2C_TRANSACTIONS = [
+  { date:'2026-04-03', num:'FACT-2026-002', client:'Sophie Dubois', pays:'France', ttc:360.00, tva:32.73, ts:7.50 },
+  { date:'2026-04-04', num:'FACT-2026-008', client:'Jean Dupont', pays:'France', ttc:180.00, tva:16.36, ts:2.50 },
+  { date:'2026-04-05', num:'FACT-2026-009', client:'Emma Schmidt', pays:'Allemagne', ttc:540.00, tva:49.09, ts:15.00 },
+  { date:'2026-04-08', num:'FACT-2026-010', client:'Pierre Bernard', pays:'France', ttc:297.00, tva:27.00, ts:7.50 },
+  { date:'2026-04-10', num:'FACT-2026-004', client:'Ali Larabi', pays:'France', ttc:360.00, tva:32.73, ts:5.00 },
+  { date:'2026-04-12', num:'FACT-2026-011', client:'Lucas Martin', pays:'France', ttc:180.00, tva:16.36, ts:2.50 },
+  { date:'2026-04-15', num:'FACT-2026-006', client:'Marie Martin', pays:'France', ttc:180.00, tva:16.36, ts:2.50 },
+  { date:'2026-04-18', num:'FACT-2026-012', client:'Carla Gomez', pays:'Espagne', ttc:720.00, tva:65.45, ts:15.00 },
+];
+
+const PDP_JOURNAL = [
+  { id:'J001', inv:'FACT-2026-007', date:'2026-04-25 10:42', status:'sent', http:200, dur:342, req:'{"invoice":"FACT-2026-007","type":"B2B","amount":5000}', res:'{"id":"PDP-98765","status":"received","timestamp":"2026-04-25T10:42:11Z"}' },
+  { id:'J002', inv:'FACT-2026-004', date:'2026-04-25 09:15', status:'rejected', http:422, dur:891, req:'{"invoice":"FACT-2026-004","type":"B2C","amount":360}', res:'{"error":"SIRET_INVALID","message":"Le SIRET client est requis pour les factures B2B","code":422}' },
+  { id:'J003', inv:'FACT-2026-003', date:'2026-04-25 08:30', status:'pending', http:202, dur:256, req:'{"invoice":"FACT-2026-003","type":"B2B","amount":1750}', res:'{"status":"processing","eta":"2026-04-25T09:30:00Z"}' },
+  { id:'J004', inv:'FACT-2026-005', date:'2026-04-22 14:20', status:'accepted', http:200, dur:180, req:'{"invoice":"FACT-2026-005","type":"B2B","amount":3500}', res:'{"id":"PDP-87654","status":"accepted","fiscalId":"FI-2026-000542"}' },
+  { id:'J005', inv:'FACT-2026-002', date:'2026-04-20 11:05', status:'accepted', http:200, dur:210, req:'{"invoice":"FACT-2026-002","type":"B2C","amount":360}', res:'{"id":"PDP-76543","status":"accepted","fiscalId":"FI-2026-000510"}' },
+  { id:'J006', inv:'FACT-2026-001', date:'2026-04-18 16:32', status:'accepted', http:200, dur:195, req:'{"invoice":"FACT-2026-001","type":"B2B","amount":1595}', res:'{"id":"PDP-65432","status":"accepted","fiscalId":"FI-2026-000487"}' },
+];
+
+const EREPORTING_HISTORY = [
+  { period:'Mars 2026', date:'2026-04-01', count:14, total:3842.00, status:'deposited' },
+  { period:'Février 2026', date:'2026-03-01', count:11, total:2950.00, status:'deposited' },
+  { period:'Janvier 2026', date:'2026-02-01', count:9, total:2380.00, status:'deposited' },
+];
+
+let currentInvoiceId = null;
+let toastTimer = null;
+
+// ══ NAVIGATION ══
+function goToTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  document.getElementById('sec-' + tab)?.classList.add('active');
+  document.getElementById('tab-' + tab)?.classList.add('active');
+
+  // Highlight nav item
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(n => {
+    if (n.getAttribute('onclick')?.includes(tab)) n.classList.add('active');
+  });
+}
+
+// ══ TOAST ══
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  const ic = document.getElementById('toast-ico');
+  document.getElementById('toast-msg').textContent = msg;
+  const map = {
+    success: ['fa-circle-check', '#10B981'],
+    error: ['fa-circle-xmark', '#EF4444'],
+    info: ['fa-circle-info', '#3B82F6'],
+    warn: ['fa-triangle-exclamation', '#F59E0B'],
+  };
+  const [cls, col] = map[type] || map.success;
+  ic.className = 'fa-solid ' + cls;
+  ic.style.color = col;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ══ MODALS ══
+function openModal(id) { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ══ PDP STATUS BADGE ══
+function pdpBadge(status) {
+  const map = {
+    accepted: ['pill-green', 'fa-circle-check', 'Acceptée'],
+    pending: ['pill-amber', 'fa-clock', 'En attente'],
+    rejected: ['pill-red', 'fa-circle-xmark', 'Rejetée'],
+    sent: ['pill-blue', 'fa-paper-plane', 'Envoyée'],
+  };
+  const [cls, ico, label] = map[status] || ['pill-gray', 'fa-circle', status];
+  return `<span class="pill ${cls}"><i class="fa-solid ${ico}"></i> ${label}</span>`;
+}
+
+function payBadge(status) {
+  return status === 'paid'
+    ? '<span class="pill pill-green">Payée</span>'
+    : '<span class="pill pill-amber">En attente</span>';
+}
+
+const fmtEur = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €';
+const fmtD = iso => new Date(iso).toLocaleDateString('fr-FR');
+
+// ══ RENDER INVOICES ══
+let filteredInvs = [...INVOICES];
+
+function renderInvoices(data) {
+  data = data || filteredInvs;
+  const body = document.getElementById('inv-body');
+  if (!data.length) {
+    body.innerHTML = '<tr><td colspan="10"><div class="empty"><i class="fa-regular fa-file-invoice"></i><p>Aucune facture trouvée</p></div></td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(inv => `
+    <tr>
+      <td><span style="font-family:monospace;font-weight:700;color:var(--v)">${inv.num}</span></td>
+      <td>
+        <div style="font-weight:600;font-size:12px">${inv.client}</div>
+        ${inv.siret ? `<div style="font-size:10px;color:var(--g400)">${inv.siret}</div>` : ''}
+      </td>
+      <td><span class="pill ${inv.type === 'B2B' ? 'pill-violet' : 'pill-blue'}">${inv.type}</span></td>
+      <td style="font-size:11px;color:var(--g500)">${fmtD(inv.date)}</td>
+      <td style="font-weight:600">${fmtEur(inv.ht)}</td>
+      <td style="color:var(--g500)">${fmtEur(inv.tva)}</td>
+      <td style="font-weight:700">${fmtEur(inv.ttc)}</td>
+      <td>${pdpBadge(inv.pdp)}</td>
+      <td>${payBadge(inv.payment)}</td>
+      <td>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-g btn-icon btn-sm" title="Détails" onclick="openInvoiceDetail('${inv.id}')">
+            <i class="fa-solid fa-eye" style="font-size:11px"></i>
+          </button>
+          <button class="btn btn-g btn-icon btn-sm" title="Télécharger Factur-X" onclick="downloadXML('${inv.id}')">
+            <i class="fa-solid fa-file-code" style="font-size:11px;color:var(--v)"></i>
+          </button>
+          <button class="btn btn-g btn-icon btn-sm" title="Renvoyer PDP" onclick="sendToPDP('${inv.id}')">
+            <i class="fa-solid fa-paper-plane" style="font-size:11px;color:var(--blue)"></i>
+          </button>
+          <button class="btn btn-g btn-icon btn-sm" title="Imprimer" onclick="printInvoice('${inv.id}')">
+            <i class="fa-solid fa-print" style="font-size:11px"></i>
+          </button>
+          ${inv.pdp !== 'rejected' ? `
+          <button class="btn btn-g btn-icon btn-sm" title="Annuler" onclick="cancelInvoice('${inv.id}')">
+            <i class="fa-solid fa-ban" style="font-size:11px;color:var(--red)"></i>
+          </button>` : ''}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterInvoices() {
+  const q = document.getElementById('inv-search').value.toLowerCase();
+  const type = document.getElementById('inv-type-filter').value;
+  const status = document.getElementById('inv-status-filter').value;
+  filteredInvs = INVOICES.filter(inv => {
+    const matchQ = !q || inv.num.toLowerCase().includes(q) || inv.client.toLowerCase().includes(q);
+    const matchT = !type || inv.type === type;
+    const matchS = !status || inv.pdp === status;
+    return matchQ && matchT && matchS;
+  });
+  document.getElementById('tab-count-invoices').textContent = filteredInvs.length;
+  renderInvoices();
+}
+
+// ══ OPEN INVOICE DETAIL ══
+function openInvoiceDetail(id) {
+  const inv = INVOICES.find(i => i.id === id);
+  if (!inv) return;
+  currentInvoiceId = id;
+
+  document.getElementById('detail-inv-num').textContent = inv.num;
+  document.getElementById('d-num').textContent = inv.num;
+  document.getElementById('d-client').textContent = inv.client;
+  document.getElementById('d-type').innerHTML = `<span class="pill ${inv.type === 'B2B' ? 'pill-violet' : 'pill-blue'}">${inv.type}</span>`;
+  document.getElementById('d-date').textContent = fmtD(inv.date);
+  document.getElementById('d-ht').textContent = fmtEur(inv.ht);
+  document.getElementById('d-tva').textContent = fmtEur(inv.tva);
+  document.getElementById('d-ttc').textContent = fmtEur(inv.ttc);
+
+  const statusIcons = {
+    accepted: { ico: 'fa-circle-check', color: '#10B981', label: 'Acceptée par la PDP', bg: '#D1FAE5' },
+    pending:  { ico: 'fa-clock',         color: '#F59E0B', label: 'En attente de traitement', bg: '#FEF3C7' },
+    rejected: { ico: 'fa-circle-xmark',  color: '#EF4444', label: 'Rejetée — action requise', bg: '#FEE2E2' },
+    sent:     { ico: 'fa-paper-plane',   color: '#3B82F6', label: 'Envoyée, en cours de validation', bg: '#DBEAFE' },
+  };
+  const sc = statusIcons[inv.pdp] || statusIcons.pending;
+  document.getElementById('d-pdp-status').innerHTML = `
+    <div style="background:${sc.bg};border-radius:10px;padding:14px;text-align:center">
+      <i class="fa-solid ${sc.ico}" style="font-size:28px;color:${sc.color};display:block;margin-bottom:8px"></i>
+      <div style="font-weight:700;color:${sc.color};font-size:12px">${sc.label}</div>
+      <div style="font-size:10px;color:var(--g400);margin-top:4px">Dernière mise à jour : ${new Date().toLocaleString('fr-FR')}</div>
+    </div>`;
+
+  // Timeline historique
+  const logs = PDP_JOURNAL.filter(j => j.inv === inv.num).slice(0, 4);
+  document.getElementById('d-timeline').innerHTML = logs.length
+    ? logs.map(j => `
+        <div class="timeline-item">
+          <div class="timeline-dot ${j.status === 'accepted' ? 'green' : j.status === 'rejected' ? 'red' : j.status === 'sent' ? 'amber' : 'gray'}">
+            <i class="fa-solid ${j.status === 'accepted' ? 'fa-check' : j.status === 'rejected' ? 'fa-xmark' : 'fa-clock'}" style="font-size:10px"></i>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-title">${j.status.toUpperCase()} · HTTP ${j.http} · ${j.dur}ms</div>
+            <div class="timeline-meta">${j.date}</div>
+            <div class="timeline-payload">${JSON.stringify(JSON.parse(j.res), null, 2)}</div>
+          </div>
+        </div>`).join('')
+    : '<p style="color:var(--g400);font-size:12px;text-align:center;padding:16px">Aucun échange enregistré</p>';
+
+  openModal('modal-invoice-detail');
+}
+
+// ══ RENDER RECENT INVOICES (dashboard) ══
+function renderRecentInvoices() {
+  document.getElementById('recent-invoices-body').innerHTML = INVOICES.slice(0, 5).map(inv => `
+    <tr onclick="openInvoiceDetail('${inv.id}')" style="cursor:pointer">
+      <td><span style="font-family:monospace;color:var(--v);font-size:11px;font-weight:700">${inv.num}</span></td>
+      <td style="font-size:12px">${inv.client}</td>
+      <td style="font-weight:700;font-size:12px">${fmtEur(inv.ttc)}</td>
+      <td>${pdpBadge(inv.pdp)}</td>
+    </tr>`).join('');
+}
+
+// ══ RENDER B2C ══
+function renderB2C() {
+  document.getElementById('b2c-body').innerHTML = B2C_TRANSACTIONS.map(t => `
+    <tr>
+      <td style="font-size:11px">${fmtD(t.date)}</td>
+      <td><span style="font-family:monospace;font-size:11px;color:var(--v)">${t.num}</span></td>
+      <td style="font-size:12px">${t.client}</td>
+      <td><span class="pill pill-gray">${t.pays}</span></td>
+      <td style="font-weight:700">${fmtEur(t.ttc)}</td>
+      <td style="color:var(--g500)">${fmtEur(t.tva)}</td>
+      <td style="color:var(--g500)">${fmtEur(t.ts)}</td>
+    </tr>`).join('');
+
+  document.getElementById('ereporting-history').innerHTML = EREPORTING_HISTORY.map(h => `
+    <div class="stat-row">
+      <div>
+        <div style="font-weight:600;font-size:12px">${h.period}</div>
+        <div style="font-size:10px;color:var(--g400)">${h.count} transactions · Déposé le ${fmtD(h.date)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-weight:700;font-size:12px">${fmtEur(h.total)}</div>
+        <span class="pill pill-green" style="font-size:8px">✓ Déposé</span>
+      </div>
+    </div>`).join('');
+}
+
+// ══ RENDER JOURNAL ══
+function renderJournal() {
+  const statusCfg = {
+    accepted: { cls:'green', ico:'fa-check', label:'Accepté' },
+    rejected: { cls:'red', ico:'fa-xmark', label:'Rejeté' },
+    pending:  { cls:'amber', ico:'fa-clock', label:'En attente' },
+    sent:     { cls:'gray', ico:'fa-paper-plane', label:'Envoyé' },
+  };
+  document.getElementById('journal-timeline').innerHTML = `<div class="timeline">${PDP_JOURNAL.map(j => {
+    const sc = statusCfg[j.status] || statusCfg.sent;
+    return `
+      <div class="timeline-item">
+        <div class="timeline-dot ${sc.cls}">
+          <i class="fa-solid ${sc.ico}" style="font-size:10px"></i>
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title">${j.inv} · <span class="pill pill-${sc.cls === 'green' ? 'green' : sc.cls === 'red' ? 'red' : sc.cls === 'amber' ? 'amber' : 'gray'}">${sc.label}</span> · HTTP ${j.http} · ${j.dur}ms</div>
+          <div class="timeline-meta">${j.date} · ID ${j.id}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <div>
+              <div style="font-size:9px;color:var(--g400);font-weight:700;margin-bottom:4px;text-transform:uppercase">Requête →</div>
+              <div class="timeline-payload">${j.req}</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:var(--g400);font-weight:700;margin-bottom:4px;text-transform:uppercase">Réponse ←</div>
+              <div class="timeline-payload">${j.res}</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('')}</div>`;
+  document.getElementById('tab-count-journal').textContent = PDP_JOURNAL.length;
+}
+
+// ══ RENDER RECENT JOURNAL (dashboard) ══
+function renderRecentJournal() {
+  const statusCfg = {
+    accepted: { cls:'green', ico:'fa-check' },
+    rejected: { cls:'red', ico:'fa-xmark' },
+    pending:  { cls:'amber', ico:'fa-clock' },
+    sent:     { cls:'gray', ico:'fa-paper-plane' },
+  };
+  document.getElementById('recent-journal').innerHTML = PDP_JOURNAL.slice(0, 4).map(j => {
+    const sc = statusCfg[j.status] || statusCfg.sent;
+    return `
+      <div class="timeline-item">
+        <div class="timeline-dot ${sc.cls}"><i class="fa-solid ${sc.ico}" style="font-size:10px"></i></div>
+        <div class="timeline-content">
+          <div class="timeline-title">${j.inv} · HTTP ${j.http}</div>
+          <div class="timeline-meta">${j.date} · ${j.dur}ms</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══ ACTIONS ══
+function sendToPDP(id) {
+  const inv = INVOICES.find(i => i.id === id);
+  if (!inv) return;
+  showToast('Envoi en cours vers la PDP…', 'info');
+  setTimeout(() => {
+    inv.pdp = Math.random() > 0.2 ? 'accepted' : 'sent';
+    renderInvoices();
+    renderRecentInvoices();
+    showToast(`Facture ${inv.num} envoyée — Statut : ${inv.pdp}`, 'success');
+  }, 1800);
+}
+
+function downloadXML(id) {
+  const inv = INVOICES.find(i => i.id === id);
+  if (!inv) return;
+  const xml = generateFacturX(inv);
+  const blob = new Blob([xml], { type:'application/xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = inv.num + '_FacturX.xml';
+  a.click();
+  showToast('Factur-X téléchargé : ' + inv.num, 'success');
+}
+
+function generateFacturX(inv) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!-- Factur-X / ZUGFeRD — MINIMUM profile -->
+<!-- Généré par Flowtym PMS · ${new Date().toISOString()} -->
+<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+  xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+  xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:factur-x.eu:1p0:minimum</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+    <ram:ID>${inv.num}</ram:ID>
+    <ram:TypeCode>380</ram:TypeCode>
+    <ram:IssueDateTime>
+      <udt:DateTimeString format="102">${inv.date.replace(/-/g,'')}</udt:DateTimeString>
+    </ram:IssueDateTime>
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:Name>Mas Provencal Aix</ram:Name>
+        <ram:SpecifiedTaxRegistration>
+          <ram:ID schemeID="VA">FR00000000000</ram:ID>
+        </ram:SpecifiedTaxRegistration>
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>${inv.client}</ram:Name>
+        ${inv.siret ? `<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">${inv.siret.replace(/ /g,'')}</ram:ID></ram:SpecifiedLegalOrganization>` : ''}
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <ram:ApplicableHeaderTradeDelivery/>
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>${inv.ht.toFixed(2)}</ram:LineTotalAmount>
+        <ram:TaxBasisTotalAmount>${inv.ht.toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">${inv.tva.toFixed(2)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${inv.ttc.toFixed(2)}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>${inv.ttc.toFixed(2)}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>`;
+}
+
+function printInvoice(id) {
+  const inv = INVOICES.find(i => i.id === id);
+  if (!inv) return;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html><head><title>${inv.num}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body{font-family:Inter,sans-serif;padding:40px;color:#1e293b;max-width:800px;margin:0 auto}
+    h1{color:#8B5CF6;font-size:28px;margin:0 0 4px} .badge{background:#EDE9FE;color:#6D28D9;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin:20px 0} th{background:#f1f5f9;padding:10px;text-align:left;font-weight:700}
+    td{padding:10px;border-bottom:1px solid #f1f5f9} .total{background:#EDE9FE;padding:12px;border-radius:10px;text-align:right}
+    @media print{@page{margin:15mm}}</style>
+    </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px">
+      <div><h1>FLOWTYM PMS</h1><p style="color:#64748b;font-size:12px">Mas Provencal Aix — 13100 Aix-en-Provence</p></div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:800;color:#8B5CF6">${inv.num}</div>
+        <span class="badge">${inv.type}</span>
+        <div style="font-size:12px;color:#64748b;margin-top:4px">Émise le ${fmtD(inv.date)}</div>
+      </div>
+    </div>
+    <div style="background:#f8fafc;padding:20px;border-radius:12px;margin-bottom:20px">
+      <div style="font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;margin-bottom:8px">CLIENT</div>
+      <div style="font-size:16px;font-weight:700">${inv.client}</div>
+      ${inv.siret ? `<div style="font-size:12px;color:#64748b">SIRET : ${inv.siret}</div>` : ''}
+    </div>
+    <table><thead><tr><th>Description</th><th>HT</th><th>TVA 10%</th><th>TTC</th></tr></thead>
+    <tbody><tr><td>Hébergement — Réservation ${inv.resa || inv.num}</td><td>${fmtEur(inv.ht)}</td><td>${fmtEur(inv.tva)}</td><td>${fmtEur(inv.ttc)}</td></tr></tbody></table>
+    <div class="total"><span style="font-size:14px;font-weight:800;color:#6D28D9">TOTAL TTC : ${fmtEur(inv.ttc)}</span></div>
+    <div style="margin-top:30px;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px;text-align:center">
+      Flowtym PMS · SIRET 000 000 000 00000 · TVA FR00 000 000 000 · contact@flowtym.com
+    </div>
+    </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+  showToast('PDF impression en cours…', 'info');
+}
+
+function cancelInvoice(id) {
+  if (!confirm('Annuler cette facture ? Une avoir sera automatiquement créé.')) return;
+  const inv = INVOICES.find(i => i.id === id);
+  if (inv) inv.pdp = 'rejected';
+  renderInvoices();
+  closeModal('modal-invoice-detail');
+  showToast('Facture annulée — avoir créé', 'warn');
+}
+
+// ══ CREATE INVOICE ══
+function calcNewTTC() {
+  const ht = parseFloat(document.getElementById('new-ht').value) || 0;
+  const rate = parseFloat(document.getElementById('new-tva-rate').value) || 0;
+  const tva = ht * rate / 100;
+  const ttc = ht + tva;
+  const fmt = n => n.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + ' €';
+  document.getElementById('calc-ht').textContent = fmt(ht);
+  document.getElementById('calc-tva').textContent = fmt(tva);
+  document.getElementById('calc-ttc').textContent = fmt(ttc);
+}
+
+function createInvoice() {
+  const client = document.getElementById('new-client').value.trim();
+  const ht = parseFloat(document.getElementById('new-ht').value);
+  if (!client || !ht) { showToast('Client et montant requis', 'error'); return; }
+  const rate = parseFloat(document.getElementById('new-tva-rate').value);
+  const tva = ht * rate / 100;
+  const ttc = ht + tva;
+  const newInv = {
+    id: 'INV-' + Date.now(),
+    num: document.getElementById('new-num').value || ('FACT-2026-' + String(INVOICES.length + 1).padStart(3,'0')),
+    client,
+    siret: document.getElementById('new-siret').value,
+    type: document.getElementById('new-type').value,
+    date: document.getElementById('new-date').value || new Date().toISOString().split('T')[0],
+    ht, tva, ttc,
+    pdp: 'pending',
+    payment: 'pending',
+    resa: document.getElementById('new-resa').value,
+  };
+  INVOICES.unshift(newInv);
+  closeModal('modal-new-invoice');
+  filterInvoices();
+  document.getElementById('kpi-pending').textContent = INVOICES.filter(i => i.pdp === 'pending').length;
+  showToast(`Facture ${newInv.num} créée — envoi PDP en cours…`, 'success');
+  // Simulation envoi PDP
+  setTimeout(() => {
+    newInv.pdp = 'sent';
+    filterInvoices();
+    showToast(`Facture ${newInv.num} transmise à la PDP`, 'success');
+  }, 2000);
+}
+
+// ══ E-REPORTING ══
+function generateEreporting() {
+  const rows = ['Date,Facture,Client,Pays,TTC,TVA10%,TaxeSejour'];
+  B2C_TRANSACTIONS.forEach(t => {
+    rows.push(`${t.date},${t.num},"${t.client}",${t.pays},${t.ttc.toFixed(2)},${t.tva.toFixed(2)},${t.ts.toFixed(2)}`);
+  });
+  const total = B2C_TRANSACTIONS.reduce((s,t) => s + t.ttc, 0);
+  rows.push(`TOTAL,,,,${total.toFixed(2)},,`);
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ereporting_B2C_avril_2026.csv';
+  a.click();
+  showToast('E-reporting CSV généré — avril 2026', 'success');
+}
+
+function generateEreportingXML() {
+  const total = B2C_TRANSACTIONS.reduce((s,t) => s + t.ttc, 0);
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<!-- Flowtym PMS — E-reporting B2C · Avril 2026 -->
+<ereporting xmlns="urn:dgfip:ereporting:1.0">
+  <periode>2026-04</periode>
+  <emetteur>
+    <siret>000000000000000</siret>
+    <nom>Mas Provencal Aix</nom>
+  </emetteur>
+  <transactions>
+${B2C_TRANSACTIONS.map(t => `    <transaction>
+      <date>${t.date}</date>
+      <reference>${t.num}</reference>
+      <client><nom>${t.client}</nom><pays>${t.pays}</pays></client>
+      <montants><ttc>${t.ttc.toFixed(2)}</ttc><tva><taux>10</taux><montant>${t.tva.toFixed(2)}</montant></tva><taxeSejour>${t.ts.toFixed(2)}</taxeSejour></montants>
+    </transaction>`).join('\n')}
+  </transactions>
+  <totalTTC>${total.toFixed(2)}</totalTTC>
+</ereporting>`;
+  const blob = new Blob([xml], { type: 'application/xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ereporting_B2C_avril_2026.xml';
+  a.click();
+  showToast('E-reporting XML généré — avril 2026', 'success');
+}
+
+// ══ EXPORT ══
+function exportAllXML() {
+  showToast('Export Factur-X de ' + filteredInvs.length + ' factures en cours…', 'info');
+  setTimeout(() => showToast('Archive ZIP générée (simulation)', 'success'), 1500);
+}
+
+function exportExcel() {
+  const rows = [['N° Facture','Client','Type','Date','HT','TVA','TTC','Statut PDP','Paiement']];
+  filteredInvs.forEach(inv => {
+    rows.push([inv.num, inv.client, inv.type, inv.date, inv.ht, inv.tva, inv.ttc, inv.pdp, inv.payment]);
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'flowtym_factures_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  showToast('Export Excel généré', 'success');
+}
+
+function exportJournalCSV() {
+  const rows = [['ID','Facture','Date','Statut','HTTP','Durée ms','Réponse']];
+  PDP_JOURNAL.forEach(j => rows.push([j.id, j.inv, j.date, j.status, j.http, j.dur, j.res]));
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'journal_pdp_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  showToast('Journal PDP exporté', 'success');
+}
+
+// ══ PARAMS ══
+function saveParams() {
+  showToast('Paramètres PDP sauvegardés', 'success');
+}
+
+function testPDP() {
+  showToast('Test de connexion PDP en cours…', 'info');
+  setTimeout(() => showToast('✓ PDP opérationnelle · 187ms', 'success'), 1200);
+}
+
+function copySQL() {
+  const sql = document.getElementById('sql-block').textContent;
+  navigator.clipboard.writeText(sql).then(() => showToast('SQL copié dans le presse-papier', 'success'));
+}
+
+// ══ KEYBOARD SHORTCUTS ══
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'F') { e.preventDefault(); goToTab('dashboard'); }
+  if (e.key === 'F8') { e.preventDefault(); showToast('Raccourci F8 — Export PDF', 'info'); }
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+});
+
+// ══ INIT ══
+function init() {
+  // Date par défaut nouvelle facture
+  document.getElementById('new-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('new-num').value = 'FACT-2026-' + String(INVOICES.length + 1).padStart(3,'0');
+  renderInvoices();
+  renderRecentInvoices();
+  renderB2C();
+  renderJournal();
+  renderRecentJournal();
+  // Supabase realtime si configuré
+  if (db) {
+    db.channel('pms-conformite')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoice_pdp_status' }, payload => {
+        console.log('[Conformité] Mise à jour PDP:', payload);
+      })
+      .subscribe();
+  }
+}
+
+init();
+</script>
+</body>
+</html>

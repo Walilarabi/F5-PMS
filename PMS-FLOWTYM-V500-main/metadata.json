@@ -1,0 +1,6 @@
+{
+  "name": "Flowtym PMS -Today",
+  "description": "Module de gestion des chambres et du ménage pour le PMS Flowtym. Interface responsive avec actions rapides, statuts en temps réel et suivi des réservations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
