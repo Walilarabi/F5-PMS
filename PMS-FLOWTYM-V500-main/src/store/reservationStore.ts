@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { create } from 'zustand';
+import { MOCK_RESERVATIONS } from '../mocks';
 
 // ─── TYPE ─────────────────────────────────────────────────────────────────────
 export interface Reservation {
@@ -19,7 +20,9 @@ export interface Reservation {
   solde: number;
   checkin: string;
   checkout: string;
-  // champs optionnels
+  // Optimistic locking : timestamp de la dernière modification DB connue
+  _updatedAt?: string;
+  // Champs optionnels
   email?: string;
   phone?: string;
   nationality?: string;
@@ -31,65 +34,33 @@ export interface Reservation {
   preauthAmount?: number;
   cleaning_requested?: boolean;
   cleaning_date?: string;
-  [key: string]: any; // pour les champs legacy
+  [key: string]: any;
 }
-
-// ─── DONNÉES INITIALES (mock) ─────────────────────────────────────────────────
-const INITIAL_RESERVATIONS: Reservation[] = [
-  {
-    id: 'RES-001', clientId: 1, guestName: 'Pierre Bernard',
-    status: 'checked_out',
-    dates: '23 mars – 27 mars 2026', nights: 4, room: '101',
-    canal: 'Direct', montant: 480, solde: 0,
-    checkin: '2026-03-23', checkout: '2026-03-27',
-  },
-  {
-    id: 'RES-002', clientId: 2, guestName: 'Sophie Dubois',
-    status: 'checked_in',
-    dates: '07 avr. – 10 avr. 2026', nights: 3, room: '103',
-    canal: 'Booking.com', montant: 360, solde: 360,
-    checkin: '2026-04-07', checkout: '2026-04-10',
-  },
-  {
-    id: 'RES-003', clientId: 3, guestName: 'Ali Larabi',
-    status: 'checked_in',
-    dates: '18 avr. – 25 avr. 2026', nights: 7, room: '201',
-    canal: 'Direct', montant: 1750, solde: 1750,
-    checkin: '2026-04-18', checkout: '2026-04-25',
-    cleaning_requested: true, cleaning_date: '2026-04-22',
-  },
-  {
-    id: 'RES-004', clientId: 4, guestName: 'Marie Martin',
-    status: 'confirmed',
-    dates: '07 avr. – 09 avr. 2026', nights: 2, room: '102',
-    canal: 'Direct', montant: 360, solde: 360,
-    checkin: '2026-04-07', checkout: '2026-04-09',
-    cleaning_requested: false,
-  },
-];
 
 // ─── STORE ────────────────────────────────────────────────────────────────────
 interface ReservationStore {
   reservations: Reservation[];
 
-  // Initialiser depuis Supabase (remplace tout)
+  // Initialiser depuis Supabase (remplace tout le state)
   setReservations: (reservations: Reservation[]) => void;
 
-  // Ajouter une réservation (formulaire → Planning + Réservations en temps réel)
+  // CRUD
   addReservation: (reservation: Reservation) => void;
-
-  // Mettre à jour une réservation existante
   updateReservation: (id: string, updates: Partial<Reservation>) => void;
-
-  // Supprimer
   removeReservation: (id: string) => void;
+
+  // Helpers métier
+  getById: (id: string) => Reservation | undefined;
+  getByRoom: (roomNumber: string) => Reservation[];
+  getActiveForDate: (date: string) => Reservation[];
+  hasConflict: (room: string, checkin: string, checkout: string, excludeId?: string) => boolean;
 }
 
-export const useReservationStore = create<ReservationStore>((set) => ({
-  reservations: INITIAL_RESERVATIONS,
+export const useReservationStore = create<ReservationStore>((set, get) => ({
+  // Données initiales depuis le fichier mocks centralisé
+  reservations: MOCK_RESERVATIONS as Reservation[],
 
-  setReservations: (reservations) =>
-    set({ reservations }),
+  setReservations: (reservations) => set({ reservations }),
 
   addReservation: (reservation) =>
     set((state) => ({
@@ -99,7 +70,7 @@ export const useReservationStore = create<ReservationStore>((set) => ({
   updateReservation: (id, updates) =>
     set((state) => ({
       reservations: state.reservations.map((r) =>
-        r.id === id ? { ...r, ...updates } : r
+        r.id === id ? { ...r, ...updates } : r,
       ),
     })),
 
@@ -107,4 +78,29 @@ export const useReservationStore = create<ReservationStore>((set) => ({
     set((state) => ({
       reservations: state.reservations.filter((r) => r.id !== id),
     })),
+
+  // ─── HELPERS MÉTIER ─────────────────────────────────────────────────────────
+
+  getById: (id) => get().reservations.find((r) => r.id === id),
+
+  getByRoom: (roomNumber) =>
+    get().reservations.filter(
+      (r) => r.room === roomNumber && r.status !== 'cancelled' && r.status !== 'checked_out',
+    ),
+
+  getActiveForDate: (date) =>
+    get().reservations.filter((r) => {
+      if (r.status === 'cancelled' || r.status === 'checked_out') return false;
+      return r.checkin <= date && r.checkout > date;
+    }),
+
+  // Détection de conflit en mémoire (avant appel API)
+  // checkout est exclusif (convention hôtelière : départ le matin du checkout)
+  hasConflict: (room, checkin, checkout, excludeId) =>
+    get().reservations.some((r) => {
+      if (excludeId && r.id === excludeId) return false;
+      if (r.room !== room) return false;
+      if (r.status === 'cancelled' || r.status === 'checked_out' || r.status === 'no_show') return false;
+      return checkin < r.checkout && r.checkin < checkout;
+    }),
 }));
