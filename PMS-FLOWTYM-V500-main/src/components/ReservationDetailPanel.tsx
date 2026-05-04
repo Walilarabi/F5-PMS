@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  XCircle, 
-  Calendar, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Briefcase, 
-  Star, 
-  Clock, 
-  FileText, 
-  DollarSign, 
-  User, 
-  AlertTriangle, 
-  Search, 
-  MoreVertical, 
-  Copy, 
-  Trash2, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  XCircle,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Briefcase,
+  Star,
+  Clock,
+  FileText,
+  DollarSign,
+  User,
+  AlertTriangle,
+  Search,
+  MoreVertical,
+  Copy,
+  Trash2,
   Pencil,
   Save,
   CreditCard,
@@ -25,13 +25,39 @@ import {
   Package,
   Layers,
   Euro,
-  Loader2
+  Loader2,
+  Banknote,
+  CheckSquare,
+  ArrowDownToLine,
+  Wallet,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SourceLogo } from './SourceLogo';
 import html2pdf from 'html2pdf.js';
 import { JournalDocumentsModal } from './JournalDocumentsModal';
 import { supabase } from '../lib/supabase';
+
+// ─── MODES DE PAIEMENT ───────────────────────────────────────────────────────
+export const PAYMENT_METHODS = [
+  { id: 'CB',       label: 'Carte Bancaire', icon: '💳' },
+  { id: 'Espèces',  label: 'Espèces',        icon: '💶' },
+  { id: 'Chèque',   label: 'Chèque',         icon: '📝' },
+  { id: 'Virement', label: 'Virement',        icon: '🏦' },
+  { id: 'VAD',      label: 'VAD',            icon: '🖥️' },
+  { id: 'AMEX',     label: 'American Express',icon: '🟦' },
+  { id: 'JCB',      label: 'JCB',            icon: '🔴' },
+  { id: 'DINERS',   label: 'Diners Club',    icon: '⬜' },
+] as const;
+
+export type PaymentMethodId = typeof PAYMENT_METHODS[number]['id'];
+
+interface FolioPayment {
+  id: string;
+  date: string;
+  method: PaymentMethodId;
+  amount: number;
+}
 
 interface Transaction {
   date: string;
@@ -67,6 +93,8 @@ interface ReservationDetailData {
   paymentStatus: string;
   preferences: string[];
   notes: string;
+  checkin?: string;
+  checkout?: string;
   transactions: Transaction[];
   history: StayHistory[];
   incidents: any[];
@@ -94,6 +122,12 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isJournalModalOpen, setIsJournalModalOpen] = useState(false);
   const [depositPercent, setDepositPercent] = useState('30');
+
+  // ─── ENCAISSEMENT ────────────────────────────────────────────────────────────
+  const [folioPayments, setFolioPayments] = useState<FolioPayment[]>([]);
+  const [isEncaisserOpen, setIsEncaisserOpen] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('CB');
+  const [encaisserAmount, setEncaisserAmount] = useState('');
 
   useEffect(() => {
     const fetchReservation = async () => {
@@ -174,6 +208,8 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
           nights: storeResa?.nights || 1,
           totalTtc: storeResa?.montant || storeResa?.total_amount || 0,
           paymentStatus: storeResa?.paymentStatus || storeResa?.payment_status || 'En attente',
+          checkin: storeResa?.checkin || storeResa?.check_in,
+          checkout: storeResa?.checkout || storeResa?.check_out,
           preferences: storeResa?.preferences || [],
           notes: storeResa?.notes || '',
           transactions: [],
@@ -400,65 +436,323 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
     </motion.div>
   );
 
+  // ─── LOGIQUE ENCAISSEMENT ────────────────────────────────────────────────────
+  const totalFolio = reservation ? reservation.totalTtc + 15 : 0;
+  const totalEncaisse = folioPayments.reduce((sum, p) => sum + p.amount, 0);
+  const soldeRestant = Math.max(0, totalFolio - totalEncaisse);
+
+  const handleConfirmEncaissement = useCallback(() => {
+    const amount = parseFloat(encaisserAmount.replace(',', '.'));
+    if (!amount || amount <= 0) return;
+    const payment: FolioPayment = {
+      id: `PAY-${Date.now()}`,
+      date: new Date().toLocaleDateString('fr-FR'),
+      method: selectedMethod,
+      amount,
+    };
+    setFolioPayments((prev) => [...prev, payment]);
+    setEncaisserAmount('');
+    setIsEncaisserOpen(false);
+  }, [encaisserAmount, selectedMethod]);
+
+  const handleRemovePayment = useCallback((id: string) => {
+    setFolioPayments((prev) => prev.filter((p) => p.id !== id));
+  }, []);
+
+  // ─── MODAL ENCAISSER ─────────────────────────────────────────────────────────
+  const EncaisserModal = () => (
+    <AnimatePresence>
+      {isEncaisserOpen && (
+        <div className="fixed inset-0 z-[700] flex items-end sm:items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsEncaisserOpen(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="relative w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                <Wallet className="w-24 h-24" />
+              </div>
+              <div className="flex items-center justify-between relative z-10">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Encaissement folio</p>
+                  <h3 className="text-lg font-black text-white tracking-tight">Régler le solde</h3>
+                </div>
+                <button
+                  onClick={() => setIsEncaisserOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                >
+                  <XCircle className="w-4 h-4 text-white" />
+                </button>
+              </div>
+              <div className="mt-4 flex items-center gap-3 relative z-10">
+                <div className="flex-1 bg-white/10 rounded-2xl px-4 py-2">
+                  <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total folio</div>
+                  <div className="text-base font-black text-white">{totalFolio.toFixed(2)} €</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500" />
+                <div className="flex-1 bg-emerald-500/20 rounded-2xl px-4 py-2">
+                  <div className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Solde restant</div>
+                  <div className="text-base font-black text-emerald-300">{soldeRestant.toFixed(2)} €</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              {/* Mode de paiement */}
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
+                  Mode de paiement
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setSelectedMethod(m.id)}
+                      className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border text-center transition-all ${
+                        selectedMethod === m.id
+                          ? 'bg-violet-50 border-violet-400 shadow-sm shadow-violet-100'
+                          : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                      }`}
+                    >
+                      <span className="text-lg leading-none">{m.icon}</span>
+                      <span className={`text-[8px] font-black uppercase leading-tight ${
+                        selectedMethod === m.id ? 'text-violet-700' : 'text-slate-400'
+                      }`}>
+                        {m.id}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Montant */}
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
+                  Montant encaissé (€)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={encaisserAmount}
+                    onChange={(e) => setEncaisserAmount(e.target.value)}
+                    placeholder={soldeRestant.toFixed(2)}
+                    min="0"
+                    step="0.01"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 pr-10 text-slate-900 font-black text-lg focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                    autoFocus
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">€</span>
+                </div>
+                {/* Raccourcis montant */}
+                <div className="flex gap-2 mt-2">
+                  {[soldeRestant, totalFolio * 0.5, totalFolio * 0.3].filter(v => v > 0).slice(0, 3).map((v, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setEncaisserAmount(v.toFixed(2))}
+                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-[10px] font-black text-slate-500 transition-colors"
+                    >
+                      {v.toFixed(2)} €
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview ligne facture */}
+              {encaisserAmount && parseFloat(encaisserAmount) > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <ArrowDownToLine className="w-4 h-4 text-emerald-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Ligne facture générée</div>
+                    <div className="text-xs font-black text-emerald-800 truncate">
+                      Règlement {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label} — {parseFloat(encaisserAmount.replace(',', '.')).toFixed(2)} €
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* CTA */}
+              <button
+                onClick={handleConfirmEncaissement}
+                disabled={!encaisserAmount || parseFloat(encaisserAmount) <= 0}
+                className="w-full py-3.5 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg"
+              >
+                <Banknote className="w-4 h-4" />
+                Valider l&apos;encaissement
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   const FacturationTab = () => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex gap-4">
-         <button 
-           onClick={() => handleGenerateProforma(true)}
-           className="bg-[#8B5CF6] text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2"
-         >
-            📄 Facture Proforma
-         </button>
-         <button 
-           onClick={() => setIsPaymentModalOpen(true)}
-           className="bg-[#1e293b] text-white px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
-         >
-            ✉️ Envoyer
-         </button>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+
+      {/* ─── Actions ─── */}
+      <div className="flex gap-3 flex-wrap">
+        <button
+          onClick={() => handleGenerateProforma(true)}
+          className="bg-[#8B5CF6] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all flex items-center gap-2"
+        >
+          📄 Facture Proforma
+        </button>
+        <button
+          onClick={() => setIsPaymentModalOpen(true)}
+          className="bg-[#1e293b] text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
+        >
+          ✉️ Envoyer
+        </button>
+        <button
+          onClick={() => { setEncaisserAmount(soldeRestant.toFixed(2)); setIsEncaisserOpen(true); }}
+          className="ml-auto bg-emerald-500 text-white px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-200"
+        >
+          <Banknote className="w-3.5 h-3.5" />
+          Encaisser ce folio
+        </button>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+      {/* ─── Tableau folio ─── */}
+      <div className="bg-white border border-slate-100 rounded-[28px] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-[11px] text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3 text-center">Qté</th>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3 text-right">PU HT</th>
-                <th className="px-6 py-3 text-right">PU TTC</th>
-                <th className="px-6 py-3 text-right">Total</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3 text-center">Qté</th>
+                <th className="px-5 py-3">Description</th>
+                <th className="px-5 py-3 text-right">PU HT</th>
+                <th className="px-5 py-3 text-right">PU TTC</th>
+                <th className="px-5 py-3 text-right">Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50 italic-rows">
+            <tbody className="divide-y divide-slate-50">
+              {/* Nuitées */}
               <tr className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4 font-bold text-slate-400">12/04/2024</td>
-                <td className="px-6 py-4 text-center font-black">{reservation.nights}</td>
-                <td className="px-6 py-4 font-bold text-slate-700">Nuitée — {reservation.roomType}</td>
-                <td className="px-6 py-4 text-right font-bold text-slate-500">90.00€</td>
-                <td className="px-6 py-4 text-right font-bold text-slate-500">99.00€</td>
-                <td className="px-6 py-4 text-right font-black text-slate-900">{(reservation.nights * 99).toFixed(2)} €</td>
+                <td className="px-5 py-3.5 font-bold text-slate-400 text-[10px]">
+                  {reservation.checkin ? new Date(reservation.checkin).toLocaleDateString('fr-FR') : '—'}
+                </td>
+                <td className="px-5 py-3.5 text-center font-black">{reservation.nights}</td>
+                <td className="px-5 py-3.5 font-bold text-slate-700">Nuitée — {reservation.roomType}</td>
+                <td className="px-5 py-3.5 text-right font-bold text-slate-500">{(reservation.pricePerNight * 0.9).toFixed(2)}€</td>
+                <td className="px-5 py-3.5 text-right font-bold text-slate-500">{reservation.pricePerNight.toFixed(2)}€</td>
+                <td className="px-5 py-3.5 text-right font-black text-slate-900">{(reservation.nights * reservation.pricePerNight).toFixed(2)} €</td>
               </tr>
+              {/* Taxe séjour */}
               <tr className="hover:bg-slate-50/50 transition-colors">
-                <td className="px-6 py-4 font-bold text-slate-400">12/04/2024</td>
-                <td className="px-6 py-4 text-center font-black">6</td>
-                <td className="px-6 py-4 font-bold text-slate-700">Taxe de séjour</td>
-                <td className="px-6 py-4 text-right font-bold text-slate-500">2.50€</td>
-                <td className="px-6 py-4 text-right font-bold text-slate-500">2.50€</td>
-                <td className="px-6 py-4 text-right font-black text-slate-900">15.00 €</td>
+                <td className="px-5 py-3.5 font-bold text-slate-400 text-[10px]">
+                  {reservation.checkin ? new Date(reservation.checkin).toLocaleDateString('fr-FR') : '—'}
+                </td>
+                <td className="px-5 py-3.5 text-center font-black">{reservation.nights * 2}</td>
+                <td className="px-5 py-3.5 font-bold text-slate-700">Taxe de séjour</td>
+                <td className="px-5 py-3.5 text-right font-bold text-slate-500">2.50€</td>
+                <td className="px-5 py-3.5 text-right font-bold text-slate-500">2.50€</td>
+                <td className="px-5 py-3.5 text-right font-black text-slate-900">{(reservation.nights * 2 * 2.5).toFixed(2)} €</td>
               </tr>
+
+              {/* ─── Lignes de règlements ─── */}
+              {folioPayments.length > 0 && (
+                <>
+                  <tr>
+                    <td colSpan={6} className="px-5 py-2 bg-emerald-50/60">
+                      <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Règlements</span>
+                    </td>
+                  </tr>
+                  {folioPayments.map((pay) => (
+                    <motion.tr
+                      key={pay.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-emerald-50/40 hover:bg-emerald-50 transition-colors group"
+                    >
+                      <td className="px-5 py-3 font-bold text-emerald-600 text-[10px]">{pay.date}</td>
+                      <td className="px-5 py-3 text-center font-black text-emerald-600">1</td>
+                      <td className="px-5 py-3 font-bold text-emerald-700 flex items-center gap-2">
+                        <span>{PAYMENT_METHODS.find(m => m.id === pay.method)?.icon}</span>
+                        Règlement {PAYMENT_METHODS.find(m => m.id === pay.method)?.label}
+                      </td>
+                      <td className="px-5 py-3 text-right font-bold text-emerald-500">—</td>
+                      <td className="px-5 py-3 text-right font-bold text-emerald-500">—</td>
+                      <td className="px-5 py-3 text-right font-black text-emerald-700 flex items-center justify-end gap-2">
+                        <span>- {pay.amount.toFixed(2)} €</span>
+                        <button
+                          onClick={() => handleRemovePayment(pay.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center hover:bg-rose-200"
+                          title="Supprimer ce règlement"
+                        >
+                          <XCircle className="w-3 h-3 text-rose-500" />
+                        </button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </>
+              )}
             </tbody>
           </table>
         </div>
-        
-        <div className="p-8 bg-slate-50 border-t border-slate-100 flex flex-col items-end gap-2 text-right">
-           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Sous-total HT: {(reservation.totalTtc * 0.9).toFixed(2)}€</div>
-           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">TVA 10%: {(reservation.totalTtc * 0.08).toFixed(2)}€</div>
-           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Taxe séjour: 15.00€</div>
-           <div className="bg-[#EDE9FE] rounded-[10px] px-3 py-1.5 shadow-sm mt-3 inline-block">
-             <span className="text-[10px] font-black text-[#5b21b6] mr-1.5 uppercase tracking-widest">TOTAL TTC :</span>
-             <span className="text-[15px] font-black text-[#6d28d9] tracking-tight">{(reservation.totalTtc + 15).toFixed(2)} €</span>
-           </div>
+
+        {/* ─── Totaux ─── */}
+        <div className="p-6 bg-slate-50 border-t border-slate-100 flex flex-col items-end gap-1.5 text-right">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Sous-total HT : {(reservation.totalTtc * 0.9).toFixed(2)} €
+          </div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            TVA 10% : {(reservation.totalTtc * 0.08).toFixed(2)} €
+          </div>
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Taxe séjour : {(reservation.nights * 2 * 2.5).toFixed(2)} €
+          </div>
+
+          {/* Total TTC */}
+          <div className="bg-[#EDE9FE] rounded-[10px] px-3 py-1.5 shadow-sm mt-2 inline-block">
+            <span className="text-[10px] font-black text-[#5b21b6] mr-1.5 uppercase tracking-widest">Total TTC :</span>
+            <span className="text-[15px] font-black text-[#6d28d9] tracking-tight">{totalFolio.toFixed(2)} €</span>
+          </div>
+
+          {/* Encaissé */}
+          {folioPayments.length > 0 && (
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Encaissé :</span>
+              <span className="text-[13px] font-black text-emerald-700">- {totalEncaisse.toFixed(2)} €</span>
+            </div>
+          )}
+
+          {/* Solde restant */}
+          {folioPayments.length > 0 && (
+            <div className={`rounded-[10px] px-3 py-1.5 shadow-sm inline-flex items-center gap-2 ${
+              soldeRestant <= 0 ? 'bg-emerald-100' : 'bg-rose-50 border border-rose-100'
+            }`}>
+              {soldeRestant <= 0 ? (
+                <>
+                  <CheckSquare className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Folio soldé</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Solde restant :</span>
+                  <span className="text-[13px] font-black text-rose-700">{soldeRestant.toFixed(2)} €</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -776,6 +1070,9 @@ export const ReservationDetailPanel: React.FC<ReservationDetailPanelProps> = ({
           </motion.div>
         </div>
       )}
+
+      {/* ─── Modal Encaissement ─── */}
+      <EncaisserModal />
 
       {/* Payment Link Modal */}
       <AnimatePresence>

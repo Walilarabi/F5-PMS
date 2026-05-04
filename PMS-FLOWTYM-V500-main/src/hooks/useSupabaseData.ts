@@ -11,26 +11,27 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Room, Guest, CleaningTask, LostFoundItem } from '../types';
-import type { MockReservation } from '../mocks/index';
 
+// Types retournés intentionnellement larges (any[]) pour éviter les conflits
+// avec les types internes d'App.tsx et PlanChambers.tsx qui ont leurs propres
+// interfaces Room/Guest étendues. Le typage fin se fait dans les services/.
 export interface SupabaseDataState {
-  rooms: Room[];
-  reservations: MockReservation[];
-  clients: Guest[];
-  tasks: CleaningTask[];
-  lostItems: LostFoundItem[];
+  rooms: any[];
+  reservations: any[];
+  clients: any[];
+  tasks: any[];
+  lostItems: any[];
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 }
 
 export const useSupabaseData = (hotelId: number = 1): SupabaseDataState => {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [reservations, setReservations] = useState<MockReservation[]>([]);
-  const [clients, setClients] = useState<Guest[]>([]);
-  const [tasks, setTasks] = useState<CleaningTask[]>([]);
-  const [lostItems, setLostItems] = useState<LostFoundItem[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [lostItems, setLostItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +58,7 @@ export const useSupabaseData = (hotelId: number = 1): SupabaseDataState => {
       if (!mountedRef.current) return;
 
       if (roomsRes.status === 'fulfilled' && roomsRes.value.data) {
-        setRooms(roomsRes.value.data as Room[]);
+        setRooms(roomsRes.value.data);
       }
 
       if (resRes.status === 'fulfilled' && resRes.value.data) {
@@ -74,20 +75,20 @@ export const useSupabaseData = (hotelId: number = 1): SupabaseDataState => {
             canal: r.source,
             montant: r.total_amount,
             solde: r.solde ?? (r.total_amount - (r.paid_amount ?? 0)),
-          })) as MockReservation[],
+          })),
         );
       }
 
       if (guestsRes.status === 'fulfilled' && guestsRes.value.data) {
-        setClients(guestsRes.value.data as Guest[]);
+        setClients(guestsRes.value.data);
       }
 
       if (tasksRes.status === 'fulfilled' && tasksRes.value.data) {
-        setTasks(tasksRes.value.data as CleaningTask[]);
+        setTasks(tasksRes.value.data);
       }
 
       if (lostRes.status === 'fulfilled' && lostRes.value.data) {
-        setLostItems(lostRes.value.data as LostFoundItem[]);
+        setLostItems(lostRes.value.data);
       }
 
       setError(null);
